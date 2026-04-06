@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HealthSOPS</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #8EC5FC, #E0C3FC);
+}
+
+/* NAVBAR */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 40px;
+    margin: 20px;
+    background: white;
+    border-radius: 40px;
+}
+
+.logo {
+    font-weight: 700;
+    font-size: 22px;
+    color: #0a1a5e;
+}
+
+.btn {
+    padding: 10px 25px;
+    border-radius: 30px;
+    border: none;
+    background: linear-gradient(45deg, #0a1a5e, #007bff);
+    color: white;
+    cursor: pointer;
+}
+
+/* HERO */
+.hero {
+    padding: 100px 80px;
+}
+
+.hero h1 {
+    font-size: 55px;
+    color: #0a1a5e;
+}
+
+/* MODAL */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-box {
+    background: white;
+    width: 500px;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+/* ROLE SELECT */
+.split {
+    display: flex;
+}
+
+.box {
+    width: 50%;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.patient { background: #f3f4f6; }
+.staff { background: #0a1a5e; color: white; }
+
+/* FORM */
+.form {
+    display: none;
+    padding: 25px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+}
+
+.link {
+    color: blue;
+    cursor: pointer;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    <div class="logo">HealthSOPS</div>
+    <button class="btn" onclick="openModal()">Login</button>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+    <h1>Smart hospital care,<br>made simple.</h1>
+    <button class="btn" onclick="openModal()">Get Started</button>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal">
+    <div class="modal-box">
+
+        <!-- ROLE -->
+        <div id="roleSelect" class="split">
+            <div class="box patient" onclick="showPatient()">Patient</div>
+            <div class="box staff" onclick="showStaff()">Staff</div>
+        </div>
+
+        <!-- PATIENT REGISTER -->
+        <div id="patientForm" class="form">
+            <h3>Register</h3>
+            <input id="pname" placeholder="Name">
+            <input id="pemail" placeholder="Email">
+            <input id="ppassword" type="password" placeholder="Password">
+            <button class="btn" onclick="register()">Register</button>
+            <p class="link" onclick="showLogin()">Already have account?</p>
+        </div>
+
+        <!-- LOGIN -->
+        <div id="loginForm" class="form">
+            <h3>Login</h3>
+            <input id="lemail" placeholder="Email">
+            <input id="lpassword" type="password">
+            <button class="btn" onclick="login()">Login</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function openModal(){
+    document.getElementById("modal").style.display="flex";
+}
+
+function showPatient(){
+    document.getElementById("roleSelect").style.display="none";
+    document.getElementById("patientForm").style.display="block";
+}
+
+function showStaff(){
+    document.getElementById("roleSelect").style.display="none";
+    document.getElementById("loginForm").style.display="block";
+}
+
+function showLogin(){
+    document.getElementById("patientForm").style.display="none";
+    document.getElementById("loginForm").style.display="block";
+}
+
+// REGISTER
+async function register(){
+    const res = await fetch("/register",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            name: document.getElementById("pname").value,
+            email: document.getElementById("pemail").value,
+            password: document.getElementById("ppassword").value
+        })
+    });
+
+    const data = await res.json();
+    alert(data.msg);
+}
+
+// LOGIN
+async function login(){
+    const res = await fetch("/login",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            email: document.getElementById("lemail").value,
+            password: document.getElementById("lpassword").value
+        })
+    });
+
+    const data = await res.json();
+
+    if(data.token){
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("role", data.role);
+    localStorage.setItem("user_id", data.id);  // 👈 IMPORTANT
+
+    if(data.role==="patient") window.location="/patient";
+    if(data.role==="doctor") window.location="/doctor";
+    if(data.role==="receptionist") window.location="/receptionist";
+    }else {
+        alert(data.msg);
+    }
+}
+</script>
+
+</body>
+</html>

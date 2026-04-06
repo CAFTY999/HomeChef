@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Patient Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+    margin:0;
+    font-family:Poppins;
+    display:flex;
+    height:100vh;
+}
+
+/* SIDEBAR */
+.sidebar{
+    width:220px;
+    background:#4f46e5;
+    color:white;
+    padding:20px;
+}
+
+.menu{
+    padding:10px;
+    margin:10px 0;
+    cursor:pointer;
+    border-radius:8px;
+}
+
+.menu:hover{
+    background:#6366f1;
+}
+
+/* MAIN */
+.main{
+    flex:1;
+    background:#f1f5f9;
+    padding:30px;
+}
+
+/* CARD */
+.card{
+    background:white;
+    padding:25px;
+    border-radius:15px;
+}
+
+/* SYMPTOMS */
+.symptoms{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.sym{
+    padding:10px 15px;
+    background:#eee;
+    border-radius:25px;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.sym:hover{
+    transform:scale(1.05);
+}
+
+.selected{
+    background:#4f46e5;
+    color:white;
+}
+
+/* TIME SLOTS */
+.times{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:10px;
+}
+
+.time{
+    padding:10px 15px;
+    background:#e2e8f0;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.time.selected{
+    background:#4f46e5;
+    color:white;
+}
+
+.time.disabled{
+    background:#ccc;
+    pointer-events:none;
+}
+
+/* BUTTON */
+button{
+    padding:10px 15px;
+    border:none;
+    background:#4f46e5;
+    color:white;
+    border-radius:10px;
+    margin-top:10px;
+    cursor:pointer;
+}
+
+/* INPUT */
+input{
+    padding:10px;
+    width:100%;
+    margin-top:10px;
+    border-radius:10px;
+    border:1px solid #ccc;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h2>Patient</h2>
+    <div class="menu" onclick="showBooking()">Book Appointment</div>
+    <div class="menu" onclick="showUpcoming()">Upcoming</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- BOOKING -->
+<div id="booking" class="card">
+<h2>Book Appointment</h2>
+
+<input id="search" placeholder="Search symptoms...">
+
+<div class="symptoms" id="symptoms"></div>
+
+<p id="selected"></p>
+
+<button onclick="findDoctor()">Find Specialist</button>
+
+<h3 id="doctor"></h3>
+
+<h3>Select Date</h3>
+<input type="date" id="date" onchange="loadSlots()">
+
+<h3>Select Time</h3>
+<div class="times" id="times"></div>
+
+<button onclick="book()">Book Appointment</button>
+</div>
+
+<!-- UPCOMING -->
+<div id="upcoming" class="card" style="display:none">
+<h2>Upcoming Appointments</h2>
+<div id="apptList"></div>
+</div>
+
+</div>
+
+<script>
+
+let selected=[];
+let doctor_id=null;
+let selected_time=null;
+
+const user_id=localStorage.getItem("user_id");
+const selectedDiv=document.getElementById("selected");
+
+const symptoms=[
+"fever","cold","headache","heart pain","skin rash",
+"cough","fatigue","vomiting","dizziness"
+];
+
+// -------- RENDER SYMPTOMS --------
+function renderSymptoms(list){
+    let container=document.getElementById("symptoms");
+    container.innerHTML="";
+
+    list.forEach(s=>{
+        let d=document.createElement("div");
+        d.innerText=s;
+        d.className="sym";
+
+        d.onclick=()=>{
+            d.classList.toggle("selected");
+
+            if(selected.includes(s)){
+                selected=selected.filter(x=>x!==s);
+            } else selected.push(s);
+
+            selectedDiv.innerText=selected.join(", ");
+        };
+
+        container.appendChild(d);
+    });
+}
+
+renderSymptoms(symptoms);
+
+// -------- SEARCH --------
+document.getElementById("search").addEventListener("input",function(){
+    let val=this.value.toLowerCase();
+    let filtered=symptoms.filter(x=>x.includes(val));
+    renderSymptoms(filtered);
+});
+
+// -------- SWITCH UI --------
+function showBooking(){
+    booking.style.display="block";
+    upcoming.style.display="none";
+}
+
+function showUpcoming(){
+    booking.style.display="none";
+    upcoming.style.display="block";
+    loadAppointments();
+}
+
+// -------- FIND DOCTOR --------
+async function findDoctor(){
+    let res=await fetch("/get_doctor",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({symptoms:selected.join(",")})
+    });
+
+    let d=await res.json();
+
+    doctor_id=d.doctor_id;
+    document.getElementById("doctor").innerText=
+        d.doctor_name + " ("+d.specialist+")";
+}
+
+// -------- LOAD TIME SLOTS --------
+async function loadSlots(){
+
+    if(!doctor_id) return;
+
+    let date=document.getElementById("date").value;
+
+    let res=await fetch(`/available_slots/${doctor_id}/${date}`);
+    let data=await res.json();
+
+    let container=document.getElementById("times");
+    container.innerHTML="";
+
+    data.forEach(t=>{
+        let div=document.createElement("div");
+        div.innerText=t.time;
+        div.className="time";
+
+        if(!t.available){
+            div.classList.add("disabled");
+        }
+
+        div.onclick=()=>{
+            document.querySelectorAll(".time").forEach(x=>x.classList.remove("selected"));
+            div.classList.add("selected");
+            selected_time=t.time;
+        };
+
+        container.appendChild(div);
+    });
+}
+
+// -------- BOOK --------
+async function book(){
+
+    let date=document.getElementById("date").value;
+
+    if(!selected_time){
+        alert("Select time");
+        return;
+    }
+
+    let res=await fetch("/book",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            patient_id:user_id,
+            doctor_id:doctor_id,
+            date:date,
+            time:selected_time,
+            symptoms:selected.join(",")
+        })
+    });
+
+    let d=await res.json();
+    alert(d.msg);
+}
+
+// -------- LOAD APPOINTMENTS --------
+async function loadAppointments(){
+
+    let res=await fetch("/appointments/"+user_id);
+    let data=await res.json();
+
+    if(data.length===0){
+        apptList.innerHTML="<p>No appointments</p>";
+        return;
+    }
+
+    apptList.innerHTML=data.map(x=>`
+        <div style="
+            background:white;
+            padding:15px;
+            margin:10px 0;
+            border-radius:10px;
+        ">
+            <h3>${x[0]}</h3>
+            <p>${x[1]} | ${x[2]}</p>
+            <p>${x[4]}</p>
+            <b>${x[3]}</b>
+        </div>
+    `).join("");
+}
+
+</script>
+
+</body>
+</html>
