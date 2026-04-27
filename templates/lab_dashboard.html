@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lab Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body style="background:#f4f6f9;">
+
+<div class="container-fluid">
+<div class="row">
+
+    <!-- Sidebar -->
+    <div class="col-md-2 bg-dark text-white p-4" style="height:100vh;">
+        <h4 class="mb-4">Lab Panel</h4>
+
+        <a href="/lab" class="text-white d-block mb-3">Dashboard</a>
+        <a href="/" class="text-danger d-block mt-5">Logout</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-10 p-4">
+
+        <h2 class="mb-4">Lab Test Management</h2>
+
+        <!-- Metrics Row -->
+        <div class="row mb-4">
+
+            <div class="col-md-3">
+                <div class="card shadow p-3 text-center">
+                    <h6>Total Orders</h6>
+                    <h3>{{ orders|length }}</h3>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow p-3 text-center bg-warning-subtle">
+                    <h6>Scheduled</h6>
+                    <h3>
+                        {{ orders|selectattr(4,'equalto','Scheduled')|list|length }}
+                    </h3>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow p-3 text-center bg-success-subtle">
+                    <h6>Completed</h6>
+                    <h3>
+                        {{ orders|selectattr(4,'equalto','Completed')|list|length }}
+                    </h3>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Table -->
+        <div class="card shadow p-3">
+
+            <h5 class="mb-3">Scheduled Tests</h5>
+
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Patient</th>
+                        <th>Test</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for o in orders %}
+                    <tr>
+                        <td>{{ o[0] }}</td>
+                        <td>{{ o[1] }}</td>
+                        <td>{{ o[2] }}</td>
+                        <td>{{ o[3] }}</td>
+                        <td>
+                            {% if o[4] == 'Completed' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Scheduled</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if o[4] != 'Completed' %}
+                            <a href="/lab_complete/{{ o[0] }}"
+                               class="btn btn-sm btn-primary">
+                                Upload Report
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+</div>
+
+</body>
+</html>

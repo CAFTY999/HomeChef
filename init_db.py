@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash
 conn = sqlite3.connect("database.db")
 cur = conn.cursor()
 
-# USERS
+# ---------------- USERS ----------------
 cur.execute("""
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """)
 
-# DOCTORS
+# ---------------- DOCTORS ----------------
 cur.execute("""
 CREATE TABLE IF NOT EXISTS doctors (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS doctors (
 )
 """)
 
-# PATIENTS
+# ---------------- PATIENTS ----------------
 cur.execute("""
 CREATE TABLE IF NOT EXISTS patients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS patients (
 )
 """)
 
-# APPOINTMENTS (IMPORTANT CHANGE)
+# ---------------- APPOINTMENTS ----------------
 cur.execute("""
 CREATE TABLE IF NOT EXISTS appointments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,18 +46,49 @@ CREATE TABLE IF NOT EXISTS appointments (
 )
 """)
 
-# DEFAULT USERS
-doctor_pass = generate_password_hash("1234")
+# ---------------- DEFAULT DATA ----------------
 
-cur.execute("INSERT INTO users (username,password,role) VALUES (?,?,?)",
-            ("doc1", doctor_pass, "doctor"))
+def insert_user(username, password, role):
+    try:
+        cur.execute("INSERT INTO users (username,password,role) VALUES (?,?,?)",
+                    (username, generate_password_hash(password), role))
+        return cur.lastrowid
+    except:
+        return None  # already exists
 
-doc_user_id = cur.lastrowid
+# -------- DOCTORS --------
+doctors = [
+    ("doc1", "1234", "Dr. Sharma", "General"),
+    ("doc2", "1234", "Dr. Reddy", "Cardiology"),
+    ("doc3", "1234", "Dr. Mehta", "Dermatology"),
+    ("doc4", "1234", "Dr. Khan", "Neurology"),
+]
 
-cur.execute("INSERT INTO doctors (user_id,name,specialization) VALUES (?,?,?)",
-            (doc_user_id, "Dr. Sharma", "General"))
+for username, pw, name, spec in doctors:
+    user_id = insert_user(username, pw, "doctor")
+    if user_id:
+        cur.execute("""
+        INSERT INTO doctors (user_id,name,specialization)
+        VALUES (?,?,?)
+        """, (user_id, name, spec))
 
+# -------- RECEPTIONISTS --------
+receptionists = [
+    ("rec1", "1234"),
+    ("rec2", "1234")
+]
+
+for username, pw in receptionists:
+    insert_user(username, pw, "receptionist")
+
+# -------- SAMPLE PATIENT (OPTIONAL) --------
+patient_id = insert_user("patient1", "1234", "patient")
+if patient_id:
+    cur.execute("INSERT INTO patients (user_id,name) VALUES (?,?)",
+                (patient_id, "Test Patient"))
+
+# ---------------- COMMIT ----------------
 conn.commit()
 conn.close()
 
-print("DB Ready 🚀")
+print("DB Initialized with doctors + receptionists 🚀")

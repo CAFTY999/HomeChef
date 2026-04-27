@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Upload Lab Report</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body style="background:#eef2f7;">
+
+<div class="container mt-5">
+
+<div class="card shadow border-0 p-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Upload Lab Report</h3>
+        <span class="badge bg-primary">
+            Order #{{ order_id }}
+        </span>
+    </div>
+
+    <p class="text-muted">
+        Enter findings, observations, and final result.
+    </p>
+
+    <form method="POST">
+
+        <label class="form-label fw-semibold">
+            Report Summary
+        </label>
+
+        <textarea name="report"
+                  class="form-control mb-4"
+                  rows="8"
+                  placeholder="Example: Hemoglobin normal. Sugar slightly elevated..."
+                  required></textarea>
+
+        <button class="btn btn-success px-4">
+            Mark Completed
+        </button>
+
+        <a href="/lab"
+           class="btn btn-outline-secondary ms-2 px-4">
+           Back
+        </a>
+
+    </form>
+
+</div>
+
+</div>
+
+</body>
+</html>
