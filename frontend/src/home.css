@@ -1,0 +1,68 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+.hero {
+  height: 100vh;
+  background: #f5f5f5;
+}
+
+/* NAVBAR */
+.nav {
+  width: 90%;
+  margin: 20px auto;
+  background: white;
+  padding: 15px 30px;
+  border-radius: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.nav-buttons button {
+  margin-left: 10px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+}
+
+.nav-buttons button:first-child {
+  background: transparent;
+  border: 1px solid black;
+}
+
+.nav-buttons button:last-child {
+  background: black;
+  color: white;
+}
+
+/* CONTENT */
+.content {
+  display: flex;
+  height: 80%;
+}
+
+.left {
+  width: 50%;
+  padding: 60px;
+}
+
+.right {
+  width: 50%;
+  background: url("https://images.unsplash.com/photo-1551218808-94e220e084d2")
+    center/cover;
+  border-radius: 20px;
+  margin: 20px;
+}
+
+.main-btn {
+  margin-top: 20px;
+  padding: 12px 20px;
+  background: black;
+  color: white;
+  border-radius: 20px;
+  border: none;
+}
