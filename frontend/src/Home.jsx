@@ -78,17 +78,7 @@ export default function Home() {
             </button>
           </div>
           
-          <div className="mt-10 flex items-center justify-center lg:justify-start space-x-6 text-sm font-medium text-slate-500">
-             <div className="flex items-center">
-               <span className="text-xl mr-2">✅</span> 100% Hygienic
-             </div>
-             <div className="flex items-center">
-               <span className="text-xl mr-2">🍲</span> Authentic Recipes
-             </div>
-             <div className="flex items-center">
-               <span className="text-xl mr-2">🚀</span> Fast Delivery
-             </div>
-          </div>
+          
         </div>
 
         <div className="flex-1 w-full max-w-lg lg:max-w-none relative">

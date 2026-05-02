@@ -5,8 +5,9 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet"
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
-import { PackageOpen, MapPin } from "lucide-react";
+import { PackageOpen, MapPin, ChefHat, Bike, CheckCircle2, Clock, Navigation, Zap, ArrowLeft, ArrowRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Fix leaflet icon paths
 delete L.Icon.Default.prototype._getIconUrl;
@@ -19,24 +20,23 @@ L.Icon.Default.mergeOptions({
 // Custom Icons
 const chefIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/3565/3565401.png',
-  iconSize: [38, 38],
-  iconAnchor: [19, 38],
-  popupAnchor: [0, -38]
+  iconSize: [44, 44],
+  iconAnchor: [22, 44],
+  popupAnchor: [0, -44]
 });
 
 const userIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/128/14164/14164194.png',
-  iconSize: [38, 38],
-  iconAnchor: [19, 38],
-  popupAnchor: [0, -38]
+  iconSize: [44, 44],
+  iconAnchor: [22, 44],
+  popupAnchor: [0, -44]
 });
 
-// A nice small scooty delivery icon
 const deliveryIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
-  iconSize: [48, 48],
-  iconAnchor: [24, 24],
-  className: 'smooth-marker' // Custom class for smooth transition
+  iconSize: [54, 54],
+  iconAnchor: [27, 27],
+  className: 'smooth-marker'
 });
 
 export default function TrackOrder() {
@@ -48,10 +48,9 @@ export default function TrackOrder() {
   const [routePath, setRoutePath] = useState([]);
   const [order, setOrder] = useState(null);
   
-  const [chefPos, setChefPos] = useState([12.9716, 77.5946]); // Bangalore center default
-  const [userPos, setUserPos] = useState([12.9352, 77.6245]); // default
+  const [chefPos, setChefPos] = useState([12.9716, 77.5946]);
+  const [userPos, setUserPos] = useState([12.9352, 77.6245]);
 
-  // Polling order status
   useEffect(() => {
     const fetchOrderStatus = async () => {
       try {
@@ -68,7 +67,6 @@ export default function TrackOrder() {
           setUserPos(currentOrder.deliveryLocation);
         }
 
-        // Update progress based on status
         if (currentOrder.status === "pending") setProgress(10);
         else if (currentOrder.status === "accepted") setProgress(30);
         else if (currentOrder.status === "delivery_accepted") setProgress(40);
@@ -87,14 +85,12 @@ export default function TrackOrder() {
     return () => clearInterval(interval);
   }, [orderId, user.token]);
 
-  // Fetch real road route from OSRM
   useEffect(() => {
     const fetchRoute = async () => {
       try {
         const url = `https://router.project-osrm.org/route/v1/driving/${chefPos[1]},${chefPos[0]};${userPos[1]},${userPos[0]}?geometries=geojson`;
         const res = await axios.get(url);
         if (res.data && res.data.routes && res.data.routes.length > 0) {
-          // OSRM returns [lng, lat], Leaflet needs [lat, lng]
           const coords = res.data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
           setRoutePath(coords);
         }
@@ -102,21 +98,17 @@ export default function TrackOrder() {
         console.error("Error fetching route", err);
       }
     };
-    // only fetch if we have valid coordinates that changed
     if (chefPos && userPos) {
       fetchRoute();
     }
   }, [chefPos, userPos]);
 
-  // Simulate scooty moving only when out_for_delivery
   useEffect(() => {
     if (order?.status === "out_for_delivery") {
       const interval = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 98) {
             clearInterval(interval);
-            
-            // Auto mark as delivered when reaching destination
             axios.put(
               `http://localhost:3000/api/order-status/${orderId}`,
               { status: "completed" },
@@ -124,7 +116,6 @@ export default function TrackOrder() {
             ).then(() => {
               setOrder(o => ({...o, status: "completed"}));
             }).catch(e => console.error(e));
-
             return 100; 
           }
           return prev + 0.5; 
@@ -134,10 +125,9 @@ export default function TrackOrder() {
     }
   }, [order?.status, orderId, user.token]);
 
-  // Calculate intermediate position for delivery partner along the exact route path
   let deliveryPos = chefPos;
   if (routePath.length > 0 && progress > 40) {
-    const fraction = Math.min((progress - 40) / 60, 1); // 0 to 1
+    const fraction = Math.min((progress - 40) / 60, 1);
     const exactIndex = fraction * (routePath.length - 1);
     const lowerIndex = Math.floor(exactIndex);
     const upperIndex = Math.ceil(exactIndex);
@@ -154,7 +144,6 @@ export default function TrackOrder() {
       ];
     }
   } else if (progress > 40) {
-    // Fallback if no route path is available
     const fraction = Math.min((progress - 40) / 60, 1);
     deliveryPos = [
       chefPos[0] + (userPos[0] - chefPos[0]) * fraction,
@@ -162,91 +151,107 @@ export default function TrackOrder() {
     ];
   }
 
+  const steps = [
+    { id: 'placed', label: 'Order Confirmed', desc: 'Received at kitchen', icon: PackageOpen, min: 0 },
+    { id: 'preparing', label: 'Cooking', desc: 'Chef is preparing', icon: ChefHat, min: 30 },
+    { id: 'assigned', label: 'Partner Ready', desc: 'Assigned for delivery', icon: CheckCircle2, min: 40 },
+    { id: 'shipping', label: 'On the Way', desc: 'Out for delivery', icon: Bike, min: 41 },
+    { id: 'delivered', label: 'Delivered', desc: 'Enjoy your meal', icon: Zap, min: 100 },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-[#fffcfb] flex flex-col selection:bg-primary/20">
       <Navbar />
 
-      {/* Global Style for smooth moving scooty */}
       <style>{`
-        .smooth-marker {
-          transition: transform 0.15s linear;
-        }
+        .smooth-marker { transition: transform 0.15s linear; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
 
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8">
+      <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-12 flex flex-col lg:flex-row gap-12">
         
-        {/* Tracking Sidebar */}
-        <div className="w-full lg:w-96 flex flex-col gap-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
-              <PackageOpen className="w-6 h-6 mr-2 text-primary" />
-              Order Status
-            </h2>
-            
-            <div className="relative pl-6 space-y-8 before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
-              <div className="relative">
-                <div className="absolute left-[-24px] bg-green-500 w-4 h-4 rounded-full border-4 border-white shadow"></div>
-                <h3 className="font-bold text-slate-800">Order Placed</h3>
-                <p className="text-sm text-slate-500">We have received your order</p>
-              </div>
-              <div className="relative">
-                <div className={`absolute left-[-24px] w-4 h-4 rounded-full border-4 border-white shadow ${progress >= 30 ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                <h3 className={`font-bold ${progress >= 30 ? 'text-slate-800' : 'text-slate-400'}`}>Preparing Food</h3>
-                <p className="text-sm text-slate-500">Your chef is preparing the meal</p>
-              </div>
-              <div className="relative">
-                <div className={`absolute left-[-24px] w-4 h-4 rounded-full border-4 border-white shadow ${progress >= 40 ? 'bg-indigo-500' : 'bg-slate-300'}`}></div>
-                <h3 className={`font-bold ${progress >= 40 ? 'text-slate-800' : 'text-slate-400'}`}>Partner Assigned</h3>
-                <p className="text-sm text-slate-500">Delivery partner is ready</p>
-              </div>
-              <div className="relative">
-                <div className={`absolute left-[-24px] w-4 h-4 rounded-full border-4 border-white shadow ${progress > 40 ? 'bg-primary' : 'bg-slate-300'}`}></div>
-                <h3 className={`font-bold ${progress > 40 ? 'text-slate-800' : 'text-slate-400'}`}>Out for Delivery</h3>
-                <p className="text-sm text-slate-500">Delivery partner is on the way</p>
-              </div>
-              <div className="relative">
-                <div className={`absolute left-[-24px] w-4 h-4 rounded-full border-4 border-white shadow ${progress === 100 ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                <h3 className={`font-bold ${progress === 100 ? 'text-slate-800' : 'text-slate-400'}`}>Delivered</h3>
-                <p className="text-sm text-slate-500">Enjoy your meal!</p>
+        {/* Tracking Controls */}
+        <motion.div 
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="w-full lg:w-[450px] flex flex-col gap-8"
+        >
+          <div className="glass-card rounded-[3.5rem] p-10 border border-white shadow-2xl shadow-primary/5 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+              <Navigation className="w-40 h-40" />
+            </div>
+
+            <div className="relative z-10">
+              <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.4em] mb-10 flex items-center gap-3">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div> Live Journey
+              </h2>
+              
+              <div className="space-y-10 relative">
+                {/* Connector Line */}
+                <div className="absolute left-[23px] top-4 bottom-4 w-1 bg-slate-100 rounded-full"></div>
+                <div 
+                  className="absolute left-[23px] top-4 w-1 bg-primary rounded-full transition-all duration-1000"
+                  style={{ height: `${progress}%` }}
+                ></div>
+
+                {steps.map((step, i) => (
+                  <div key={i} className="flex gap-8 relative group">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-xl z-10 ${progress >= step.min ? 'bg-slate-900 text-white' : 'bg-white text-slate-300 ring-1 ring-slate-100'}`}>
+                      <step.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className={`text-sm font-black uppercase tracking-widest ${progress >= step.min ? 'text-slate-900' : 'text-slate-300'}`}>{step.label}</h3>
+                      <p className={`text-[10px] font-bold uppercase mt-1 ${progress >= step.min ? 'text-primary' : 'text-slate-300'}`}>{step.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h3 className="font-bold text-slate-800 mb-4">Delivery Details</h3>
-            {order?.deliveryPartnerName && (
-              <div className="flex items-start mb-4">
-                <div className="bg-indigo-100 p-2 rounded-lg mr-3">
-                  <PackageOpen className="w-5 h-5 text-indigo-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Delivery Partner</p>
-                  <p className="text-sm font-medium text-slate-800">{order.deliveryPartnerName}</p>
-                </div>
-              </div>
-            )}
-            <div className="flex items-start mb-4">
-              <div className="bg-primary/10 p-2 rounded-lg mr-3">
-                <MapPin className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Delivery To</p>
-                <p className="text-sm font-medium text-slate-800">{user?.location || "Your Location"}</p>
-              </div>
+          <div className="glass-card rounded-[3.5rem] p-10 border border-white shadow-xl">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.4em] mb-8">Logistics Intelligence</h3>
+            <div className="space-y-8">
+               <div className="flex items-center gap-5">
+                 <div className="w-14 h-14 bg-slate-50 rounded-[1.5rem] flex items-center justify-center border border-slate-100">
+                    <Bike className="w-6 h-6 text-slate-400" />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pilot</p>
+                    <p className="text-sm font-black text-slate-800">{order?.deliveryPartnerName || "Assigning..."}</p>
+                 </div>
+               </div>
+               
+               <div className="flex items-center gap-5">
+                 <div className="w-14 h-14 bg-slate-50 rounded-[1.5rem] flex items-center justify-center border border-slate-100">
+                    <MapPin className="w-6 h-6 text-slate-400" />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Drop-off Destination</p>
+                    <p className="text-sm font-black text-slate-800 line-clamp-1">{user?.location || "Primary Address"}</p>
+                 </div>
+               </div>
             </div>
+
             {progress === 100 && (
-              <button 
+              <motion.button 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 onClick={() => navigate("/customer/profile")}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium py-3 rounded-xl transition-colors mt-4"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-6 rounded-3xl transition-all mt-10 text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 shadow-2xl shadow-slate-900/20"
               >
-                View in My Orders
-              </button>
+                Return to Dashboard <ArrowRight className="w-4 h-4" />
+              </motion.button>
             )}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Map Interface */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-[500px] lg:h-auto relative z-0">
+        {/* Map Display */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex-1 glass-card rounded-[4rem] border-4 border-white shadow-4xl overflow-hidden min-h-[600px] relative z-0"
+        >
           {chefPos && userPos && (
             <MapContainer 
               center={[(chefPos[0] + userPos[0])/2, (chefPos[1] + userPos[1])/2]} 
@@ -254,37 +259,44 @@ export default function TrackOrder() {
               className="w-full h-full"
               scrollWheelZoom={false}
             >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               
-              {/* Path */}
               {routePath.length > 0 ? (
-                <Polyline positions={routePath} color="#3b82f6" weight={5} opacity={0.7} />
+                <Polyline positions={routePath} color="#f97316" weight={6} opacity={0.8} lineJoin="round" />
               ) : (
-                <Polyline positions={[chefPos, userPos]} color="#94a3b8" dashArray="5, 10" weight={3} />
+                <Polyline positions={[chefPos, userPos]} color="#94a3b8" dashArray="10, 15" weight={3} />
               )}
               
-              {/* Chef Marker */}
               <Marker position={chefPos} icon={chefIcon}>
-                <Popup>Chef's Kitchen</Popup>
+                <Popup><span className="font-black text-xs">Origin Kitchen</span></Popup>
               </Marker>
 
-              {/* User Marker */}
               <Marker position={userPos} icon={userIcon}>
-                <Popup>Delivery Location</Popup>
+                <Popup><span className="font-black text-xs">Destination Point</span></Popup>
               </Marker>
 
-              {/* Moving Delivery Partner Scooty */}
               {progress > 40 && progress < 100 && (
                 <Marker position={deliveryPos} icon={deliveryIcon}>
-                  <Popup>Delivery Partner</Popup>
+                  <Popup><span className="font-black text-xs">Live Pilot Tracking</span></Popup>
                 </Marker>
               )}
             </MapContainer>
           )}
-        </div>
+
+          <div className="absolute top-10 left-10 z-[10] flex flex-col gap-4">
+             <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-white shadow-2xl flex items-center gap-3">
+                <div className="w-2.5 h-2.5 bg-primary rounded-full animate-pulse shadow-lg shadow-primary/50"></div>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800">Telemetry Active</span>
+             </div>
+             
+             {order?.status === "out_for_delivery" && (
+                <div className="bg-slate-900/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-2xl flex items-center gap-3">
+                  <Clock className="w-4 h-4 text-primary" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">ETA: ~12 Minutes</span>
+                </div>
+             )}
+          </div>
+        </motion.div>
 
       </div>
     </div>
