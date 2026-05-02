@@ -9,6 +9,7 @@ const Order = require("./models/Order");
 const jwt = require("jsonwebtoken");
 const SECRET = "homechefsecret"; // later move to .env
 const Subscription = require("./models/Subscription");
+const Transaction = require("./models/Transaction");
 
 const app = express();
 
@@ -356,7 +357,18 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
     }
 
     const user = await User.findById(req.user.id);
-    
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    const total = cart.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    // 💰 CHECK WALLET BALANCE
+    if (user.walletBalance < total) {
+      return res.status(400).json({ msg: "Insufficient wallet balance. Please top up." });
+    }
+
     // Fetch chef name if not 'multiple'
     let chefName = "HomeChef";
     if (cart.chefId && cart.chefId !== "multiple") {
@@ -364,18 +376,11 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
       if (chef) chefName = chef.name;
     }
 
-    const total = cart.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-
     const order = new Order({
       customerId: req.user.id,
       customerName: user.name,
-
       chefId: cart.chefId || "multiple",
       chefName: chefName,
-
       type,
       items: cart.items,
       total,
@@ -384,6 +389,19 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
     });
 
     await order.save();
+
+    // 💰 DEDUCT FROM WALLET
+    user.walletBalance -= total;
+    await user.save();
+
+    // 📝 LOG TRANSACTION
+    const trans = new Transaction({
+      userId: req.user.id,
+      amount: total,
+      type: "debit",
+      description: `Payment for ${type} order #${order._id.toString().substring(0,6)}`
+    });
+    await trans.save();
 
     // clear cart after placing order
     await Cart.deleteOne({
@@ -661,13 +679,17 @@ app.post("/api/cook-guide", verifyToken, async (req, res) => {
 app.post("/api/subscriptions/subscribe", verifyToken, async (req, res) => {
   try {
     const { item, chefId, chefName } = req.body;
+    const user = await User.findById(req.user.id);
+
+    // 💰 CHECK WALLET
+    if (user.walletBalance < item.price) {
+      return res.status(400).json({ msg: "Insufficient wallet balance for subscription." });
+    }
     
-    // Parse duration to number (e.g., "30 Days" -> 30)
     const days = parseInt(item.duration) || 30;
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + days);
 
-    // Create delivery schedule
     const deliverySchedule = [];
     for (let i = 0; i < days; i++) {
       const date = new Date();
@@ -689,6 +711,19 @@ app.post("/api/subscriptions/subscribe", verifyToken, async (req, res) => {
     });
 
     await subscription.save();
+
+    // 💰 DEDUCT & LOG
+    user.walletBalance -= item.price;
+    await user.save();
+
+    const trans = new Transaction({
+      userId: req.user.id,
+      amount: item.price,
+      type: "debit",
+      description: `Subscription started: ${item.name}`
+    });
+    await trans.save();
+
     res.json({ msg: "Subscription started successfully!", subscription });
   } catch (err) {
     console.log(err);
@@ -782,6 +817,38 @@ app.get("/api/delivery/subscriptions/today", verifyToken, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({ msg: "Error fetching today's subscription deliveries" });
+  }
+});
+
+// 🔹 WALLET ROUTES
+app.post("/api/wallet/add-money", verifyToken, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const user = await User.findById(req.user.id);
+    
+    user.walletBalance += Number(amount);
+    await user.save();
+
+    const trans = new Transaction({
+      userId: req.user.id,
+      amount: Number(amount),
+      type: "credit",
+      description: "Wallet Top-up"
+    });
+    await trans.save();
+
+    res.json({ msg: "Money added to wallet", balance: user.walletBalance });
+  } catch (err) {
+    res.status(500).json({ msg: "Error adding money" });
+  }
+});
+
+app.get("/api/wallet/transactions", verifyToken, async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    res.json(transactions);
+  } catch (err) {
+    res.status(500).json({ msg: "Error fetching transactions" });
   }
 });
 

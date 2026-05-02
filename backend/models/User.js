@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema({
   },
   bio: String,
   speciality: String, // e.g., "Authentic Godavari Pickles", "Hyderabadi Dum Biryani Expert"
+  walletBalance: { type: Number, default: 1000 }, // Starting balance for testing
 });
 
 module.exports = mongoose.model("User", userSchema);
