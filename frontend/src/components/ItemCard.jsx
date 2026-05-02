@@ -4,8 +4,8 @@ export default function ItemCard({ item, onAddToCart }) {
   // Use actual isVeg from DB, fallback to true if undefined
   const isVeg = item.isVeg !== false;
   
-  // Use provided imageUrl or fallback to placeholder
-  const imageUrl = item.imageUrl || `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80`;
+  // Use a single default image for all items as requested
+  const imageUrl = `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80`;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-all duration-300 group">
@@ -33,6 +33,11 @@ export default function ItemCard({ item, onAddToCart }) {
       <div className="p-4">
         <div className="flex justify-between items-start mb-1">
           <h3 className="font-semibold text-lg text-slate-800 line-clamp-1">{item.name}</h3>
+          {item.type === "subscription" && item.duration && (
+            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full whitespace-nowrap">
+              {item.duration}
+            </span>
+          )}
         </div>
         
         {item.chefName && (
@@ -48,6 +53,25 @@ export default function ItemCard({ item, onAddToCart }) {
         
         {item.description && (
           <p className="text-sm text-slate-500 mb-4 line-clamp-2">{item.description}</p>
+        )}
+        
+        {/* Subscription Details (Categories & Options) */}
+        {item.type === "subscription" && item.meals && item.meals.length > 0 && (
+          <div className="mb-4 space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Included in Plan</h4>
+            {item.meals[0].categories.map((cat, idx) => (
+              <div key={idx} className="space-y-1">
+                <p className="text-xs font-semibold text-slate-700">{cat.name}:</p>
+                <div className="flex flex-wrap gap-1">
+                  {cat.options.map((opt, oIdx) => (
+                    <span key={oIdx} className="px-2 py-0.5 bg-white border border-slate-200 text-[10px] text-slate-600 rounded-md">
+                      {opt}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
         
         <div className="flex items-center justify-between mt-4">

@@ -32,6 +32,7 @@ const itemSchema = new mongoose.Schema({
       ]
     }
   ],
+  duration: String, // e.g., "7 Days", "30 Days", "10 Days"
 
   // 🔹 READY
   stock: Number, // optional (can remove later)

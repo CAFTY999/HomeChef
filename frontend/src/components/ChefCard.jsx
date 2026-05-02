@@ -8,7 +8,14 @@ export default function ChefCard({ chefId, chefName, rating, location, cuisine }
 
   return (
     <div 
-      onClick={() => navigate(`/customer/chef/${chefId}`)}
+      onClick={() => {
+        let category = "daily";
+        if (cuisine === "Daily Meals") category = "daily";
+        else if (cuisine === "Ready-made") category = "ready";
+        else if (cuisine === "Subscription Plans") category = "subscription";
+        
+        navigate(`/customer/chef/${chefId}`, { state: { category } });
+      }}
       className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md hover:border-primary/30 transition-all cursor-pointer group flex flex-col items-center text-center"
     >
       <div className="relative mb-4">

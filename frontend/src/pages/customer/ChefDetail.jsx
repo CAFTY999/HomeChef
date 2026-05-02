@@ -1,7 +1,7 @@
 import Navbar from "../../components/Navbar";
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import ItemCard from "../../components/ItemCard";
 import { Star, MapPin, Search } from "lucide-react";
@@ -9,6 +9,7 @@ import { Star, MapPin, Search } from "lucide-react";
 export default function ChefDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const location = useLocation();
   
   const [items, setItems] = useState([]);
   const [chefInfo, setChefInfo] = useState(null);
@@ -17,7 +18,8 @@ export default function ChefDetail() {
   // Filters
   const [filterType, setFilterType] = useState("all"); // 'all', 'veg', 'non-veg'
   const [searchQuery, setSearchQuery] = useState("");
-  const [maxPrice, setMaxPrice] = useState(1000);
+  const [maxPrice, setMaxPrice] = useState(5000);
+  const [selectedCategory, setSelectedCategory] = useState(location.state?.category || "daily"); 
 
   useEffect(() => {
     const fetchChefData = async () => {
@@ -63,19 +65,19 @@ export default function ChefDetail() {
       // 1. Search Query
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // 2. Veg/Non-Veg Filter (mock logic since no backend field)
-      const isVeg = item.name.toLowerCase().includes("veg") || 
-                    item.name.toLowerCase().includes("paneer") || 
-                    item.name.toLowerCase().includes("dal") ||
-                    item.description?.toLowerCase().includes("veg");
+      // 2. Veg/Non-Veg Filter
+      const isVeg = item.isVeg !== false;
       const matchesType = filterType === "all" || (filterType === "veg" && isVeg) || (filterType === "non-veg" && !isVeg);
       
       // 3. Price Filter
       const matchesPrice = item.price <= maxPrice;
 
-      return matchesSearch && matchesType && matchesPrice;
+      // 4. Category Filter
+      const matchesCategory = item.type === selectedCategory;
+
+      return matchesSearch && matchesType && matchesPrice && matchesCategory;
     });
-  }, [items, searchQuery, filterType, maxPrice]);
+  }, [items, searchQuery, filterType, maxPrice, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
@@ -165,23 +167,49 @@ export default function ChefDetail() {
               <input 
                 type="range" 
                 min="0" 
-                max="2000" 
-                step="50"
+                max="10000" 
+                step="100"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
                 className="w-full accent-primary"
               />
               <div className="flex justify-between text-xs text-slate-400 mt-1">
                 <span>₹0</span>
-                <span>₹2000</span>
+                <span>₹10000</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Menu Grid */}
+        {/* Menu Section */}
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6">Menu</h2>
+          {/* Category Tabs - Hidden if navigating from a specific category section */}
+          {!location.state?.category && (
+            <div className="flex border-b border-slate-200 mb-8 overflow-x-auto scrollbar-hide">
+              <button 
+                onClick={() => setSelectedCategory("daily")}
+                className={`px-6 py-4 text-sm font-bold whitespace-nowrap transition-all border-b-2 ${selectedCategory === "daily" ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                Daily Meals
+              </button>
+              <button 
+                onClick={() => setSelectedCategory("subscription")}
+                className={`px-6 py-4 text-sm font-bold whitespace-nowrap transition-all border-b-2 ${selectedCategory === "subscription" ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                Subscription Plans
+              </button>
+              <button 
+                onClick={() => setSelectedCategory("ready")}
+                className={`px-6 py-4 text-sm font-bold whitespace-nowrap transition-all border-b-2 ${selectedCategory === "ready" ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                Ready-made (Pickles & Snacks)
+              </button>
+            </div>
+          )}
+
+          <h2 className="text-2xl font-bold text-slate-800 mb-6 capitalize">
+            {location.state?.category ? (selectedCategory === 'ready' ? 'Pickles & Snacks' : `${selectedCategory} Plans`) : (selectedCategory === 'ready' ? 'Pickles & Snacks' : `${selectedCategory} Items`)}
+          </h2>
           
           {loading ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
