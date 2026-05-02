@@ -269,6 +269,7 @@ app.post("/api/cart/add", verifyToken, async (req, res) => {
   } else {
     cart.items.push({
       itemId: item._id,
+      chefId: item.chefId,
       name: item.name,
       price: item.price,
       quantity: 1
@@ -369,26 +370,66 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
       return res.status(400).json({ msg: "Insufficient wallet balance. Please top up." });
     }
 
-    // Fetch chef name if not 'multiple'
-    let chefName = "HomeChef";
-    if (cart.chefId && cart.chefId !== "multiple") {
-      const chef = await User.findById(cart.chefId);
-      if (chef) chefName = chef.name;
+    let orderIds = [];
+    let mainOrderId = null;
+
+    if (type === "ready") {
+      // 🍕 Group items by chefId for ready food
+      const itemsByChef = {};
+      cart.items.forEach(item => {
+        const cId = item.chefId || "unknown";
+        if (!itemsByChef[cId]) itemsByChef[cId] = [];
+        itemsByChef[cId].push(item);
+      });
+
+      for (const cId in itemsByChef) {
+        const chefItems = itemsByChef[cId];
+        const chefTotal = chefItems.reduce((s, i) => s + i.price * i.quantity, 0);
+        
+        let chefName = "HomeChef";
+        const chefUser = await User.findById(cId);
+        if (chefUser) chefName = chefUser.name;
+
+        const order = new Order({
+          customerId: req.user.id,
+          customerName: user.name,
+          chefId: cId,
+          chefName: chefName,
+          type,
+          items: chefItems,
+          total: chefTotal,
+          status: "pending",
+          deliveryLocation
+        });
+
+        await order.save();
+        orderIds.push(order._id);
+        if (!mainOrderId) mainOrderId = order._id;
+      }
+    } else {
+      // 🍱 Single chef for Daily/Subscription
+      let chefName = "HomeChef";
+      if (cart.chefId) {
+        const chef = await User.findById(cart.chefId);
+        if (chef) chefName = chef.name;
+      }
+
+      const order = new Order({
+        customerId: req.user.id,
+        customerName: user.name,
+        chefId: cart.chefId,
+        chefName: chefName,
+        type,
+        items: cart.items,
+        total,
+        status: "pending",
+        deliveryLocation
+      });
+
+      await order.save();
+      mainOrderId = order._id;
+      orderIds.push(order._id);
     }
-
-    const order = new Order({
-      customerId: req.user.id,
-      customerName: user.name,
-      chefId: cart.chefId || "multiple",
-      chefName: chefName,
-      type,
-      items: cart.items,
-      total,
-      status: "pending",
-      deliveryLocation
-    });
-
-    await order.save();
 
     // 💰 DEDUCT FROM WALLET
     user.walletBalance -= total;
@@ -399,7 +440,7 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
       userId: req.user.id,
       amount: total,
       type: "debit",
-      description: `Payment for ${type} order #${order._id.toString().substring(0,6)}`
+      description: `Payment for ${type} order(s)`
     });
     await trans.save();
 
@@ -411,7 +452,8 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
 
     res.json({
       msg: "Order placed successfully",
-      orderId: order._id
+      orderId: mainOrderId,
+      orderIds
     });
 
   } catch (err) {

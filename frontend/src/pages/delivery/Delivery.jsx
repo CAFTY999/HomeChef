@@ -49,6 +49,13 @@ export default function Delivery() {
     } catch(e) {}
   };
 
+  const updateStatus = async (id, status) => {
+    try {
+      await axios.put(`http://localhost:3000/api/order-status/${id}`, { status }, { headers: { Authorization: user.token } });
+      fetchOrders();
+    } catch(e) {}
+  };
+
   const handleSubDelivered = async (subId, scheduleId) => {
     try {
       await axios.put(`http://localhost:3000/api/subscriptions/update-status`, 
@@ -139,7 +146,22 @@ export default function Delivery() {
                     <div key={order._id} className="bg-slate-800 text-white rounded-2xl p-6">
                       <h3 className="font-bold text-xl">Deliver to {order.customerName}</h3>
                       <p className="text-slate-400">Chef: {order.chefName}</p>
-                      {order.status === 'out_for_delivery' && <button onClick={() => markDelivered(order._id)} className="w-full mt-4 bg-green-500 text-white py-3 rounded-xl font-bold">Mark Delivered</button>}
+                      {order.status === 'delivery_accepted' && (
+                        <button 
+                          onClick={() => updateStatus(order._id, "out_for_delivery")} 
+                          className="w-full mt-4 bg-primary text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"
+                        >
+                          <Bike className="w-5 h-5" /> Start Delivery
+                        </button>
+                      )}
+                      {order.status === 'out_for_delivery' && (
+                        <button 
+                          onClick={() => markDelivered(order._id)} 
+                          className="w-full mt-4 bg-green-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle2 className="w-5 h-5" /> Mark Delivered
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

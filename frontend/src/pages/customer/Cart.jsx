@@ -97,7 +97,13 @@ export default function Cart() {
 
   const incrementItem = async (item) => {
     try {
-      const mockItem = { _id: item.itemId, name: item.name, price: item.price, type };
+      const mockItem = { 
+        _id: item.itemId, 
+        name: item.name, 
+        price: item.price, 
+        chefId: item.chefId, // ✅ important for multi-chef
+        type 
+      };
       await axios.post(
         "http://localhost:3000/api/cart/add",
         { item: mockItem },
