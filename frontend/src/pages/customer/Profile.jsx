@@ -150,9 +150,10 @@ export default function Profile() {
            {activeView === "active" && (
              <div className="space-y-6">
                 {currentOrders.length === 0 ? (
-                  <div className="bg-white/40 backdrop-blur-md rounded-[3rem] p-24 text-center border border-white shadow-sm">
-                    <ShoppingBag className="w-16 h-16 text-slate-100 mx-auto mb-6" />
-                    <h3 className="text-xl font-bold text-slate-300 uppercase tracking-widest">No active orders</h3>
+                  <div className="bg-white/40 backdrop-blur-md rounded-[3rem] p-12 text-center border border-white shadow-sm flex flex-col items-center">
+                    <img src="/src/assets/mascot.png" alt="Mascot" className="h-64 object-contain mb-6 opacity-80" />
+                    <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">No active orders yet</h3>
+                    <p className="text-sm text-slate-300 font-bold mt-2">Your Home Chef is waiting to cook for you!</p>
                   </div>
                 ) : currentOrders.map(order => (
                   <div key={order._id} className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6 group hover:scale-[1.01] transition-all">
@@ -185,7 +186,12 @@ export default function Profile() {
 
            {activeView === "past" && (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {previousOrders.map(order => (
+                {previousOrders.length === 0 ? (
+                  <div className="col-span-full bg-white/40 backdrop-blur-md rounded-[3rem] p-12 text-center border border-white shadow-sm flex flex-col items-center">
+                    <img src="/src/assets/mascot.png" alt="Mascot" className="h-64 object-contain mb-6 opacity-40 grayscale" />
+                    <h3 className="text-xl font-black text-slate-300 uppercase tracking-widest">No order history</h3>
+                  </div>
+                ) : previousOrders.map(order => (
                   <div key={order._id} className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-50 hover:shadow-2xl transition-all">
                      <div className="flex justify-between items-start mb-8">
                         <div>
@@ -311,13 +317,20 @@ export default function Profile() {
                     <span className="text-3xl font-black text-slate-900 tracking-tighter">₹{showInvoice.total.toLocaleString()}</span>
                  </div>
 
-                 <div className="flex items-center gap-4 text-slate-300">
-                    <div className="w-12 h-12 border-2 border-slate-100 rounded-full flex items-center justify-center text-[8px] font-black uppercase text-center leading-tight p-1">
-                       Verified<br/>Chef
+                 <div className="flex items-center gap-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+                    <div className="w-24 h-24 rounded-full border-2 border-white flex items-center justify-center p-1 bg-white overflow-hidden shadow-xl">
+                       <img 
+                          src="/src/assets/logo.png" 
+                          alt="Verified Seal" 
+                          className="w-full h-full object-cover scale-[1.4]" 
+                       />
                     </div>
-                    <p className="text-[10px] italic font-medium leading-relaxed">
-                       This order was freshly prepared by Chef {showInvoice.chefName} and delivered to your doorstep.
-                    </p>
+                    <div>
+                       <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1">Authenticity Guaranteed</p>
+                       <p className="text-xs italic font-semibold leading-relaxed text-slate-500 max-w-[240px]">
+                          "Freshly prepared by Chef {showInvoice.chefName} using traditional recipes, home-ground spices, and lots of warmth."
+                       </p>
+                    </div>
                  </div>
               </div>
               

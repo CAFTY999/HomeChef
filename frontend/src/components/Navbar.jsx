@@ -32,15 +32,18 @@ export default function Navbar({ search, setSearch }) {
     <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 shadow-sm w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="flex justify-between items-center h-16 w-full">
-          {/* Logo */}
           <div 
             className="flex-shrink-0 flex items-center cursor-pointer group" 
             onClick={() => navigate(user?.role === 'customer' ? "/customer" : user?.role === 'delivery_partner' ? "/delivery" : "/")}
           >
-            <div className="bg-primary/10 p-2 rounded-xl group-hover:bg-primary/20 transition-colors">
-              <ChefHat className="h-6 w-6 text-primary" />
+            <div className="w-14 h-14 bg-white rounded-full border border-slate-100 shadow-sm group-hover:shadow-md transition-all duration-300 overflow-hidden flex items-center justify-center">
+              <img 
+                src="/src/assets/logo.png" 
+                alt="HomeChef Logo" 
+                className="w-full h-full object-cover scale-[1.3] transition-transform duration-500 group-hover:scale-[1.4]" 
+              />
             </div>
-            <span className="ml-3 text-xl font-bold text-slate-800 tracking-tight">HomeChef</span>
+            <span className="ml-4 text-2xl font-black text-slate-900 tracking-tighter uppercase">HomeChef</span>
           </div>
 
           {/* Optional Search Bar for Customer Home/Categories */}

@@ -19,10 +19,14 @@ export default function Home() {
       {/* NAVBAR */}
       <nav className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
         <div className="flex items-center group cursor-pointer">
-          <div className="bg-primary/10 p-2 rounded-xl group-hover:bg-primary/20 transition-colors">
-            <ChefHat className="h-6 w-6 text-primary" />
+          <div className="w-16 h-16 bg-white rounded-full border border-slate-100 shadow-md group-hover:shadow-lg transition-all duration-300 overflow-hidden flex items-center justify-center">
+            <img 
+              src="/src/assets/logo.png" 
+              alt="HomeChef Logo" 
+              className="w-full h-full object-cover scale-[1.3] transition-transform duration-500 group-hover:scale-[1.4]" 
+            />
           </div>
-          <span className="ml-3 text-2xl font-bold text-slate-800 tracking-tight">HomeChef</span>
+          <span className="ml-4 text-3xl font-black text-slate-900 tracking-tighter uppercase">HomeChef</span>
         </div>
 
         <div className="flex items-center space-x-4">
@@ -89,11 +93,13 @@ export default function Home() {
 
         <div className="flex-1 w-full max-w-lg lg:max-w-none relative">
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-orange-300/20 rounded-full filter blur-3xl transform scale-110"></div>
-          <img 
-            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80" 
-            alt="Delicious homemade food" 
-            className="relative z-10 w-full h-auto rounded-3xl shadow-2xl border-8 border-white/50 object-cover aspect-[4/3] rotate-[-2deg] hover:rotate-0 transition-transform duration-500"
-          />
+          <div className="relative z-10">
+            <img 
+              src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80" 
+              alt="Delicious homemade food" 
+              className="w-full h-auto rounded-[3rem] shadow-2xl border-8 border-white/50 object-cover aspect-[4/3] rotate-[-2deg] hover:rotate-0 transition-transform duration-500"
+            />
+          </div>
         </div>
       </main>
 
