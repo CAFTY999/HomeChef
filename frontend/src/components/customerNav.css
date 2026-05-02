@@ -1,0 +1,14 @@
+.cust-nav {
+  display: flex;
+  gap: 10px;
+  margin: 20px;
+}
+
+.cust-nav button {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  background: black;
+  color: white;
+  cursor: pointer;
+}
