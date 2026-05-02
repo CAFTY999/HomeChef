@@ -1,6 +1,6 @@
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ShoppingCart, User as UserIcon, LogOut, Menu, ChefHat, Flame } from "lucide-react";
+import { ShoppingCart, User as UserIcon, LogOut, Menu, ChefHat, Flame, Calendar } from "lucide-react";
 import { useState } from "react";
 
 export default function Navbar({ search, setSearch }) {
@@ -85,6 +85,14 @@ export default function Navbar({ search, setSearch }) {
                 >
                   <Flame className="h-5 w-5" />
                 </button>
+
+                <button 
+                  onClick={() => navigate("/customer/my-subscriptions")}
+                  className="p-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                  title="My Subscriptions"
+                >
+                  <Calendar className="h-5 w-5" />
+                </button>
               </>
             )}
             
@@ -146,6 +154,12 @@ export default function Navbar({ search, setSearch }) {
                   className="flex items-center w-full px-3 py-3 text-base font-medium text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-md"
                 >
                   <Flame className="h-5 w-5 mr-3 text-orange-500" /> Cook Guide
+                </button>
+                <button 
+                  onClick={() => { navigate("/customer/my-subscriptions"); setIsMobileMenuOpen(false); }}
+                  className="flex items-center w-full px-3 py-3 text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-md"
+                >
+                  <Calendar className="h-5 w-5 mr-3 text-blue-500" /> My Subscriptions
                 </button>
               </>
             )}

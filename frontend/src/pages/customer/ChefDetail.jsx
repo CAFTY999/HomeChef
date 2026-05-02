@@ -33,7 +33,9 @@ export default function ChefDetail() {
           setChefInfo({
             name: chefItems[0].chefName,
             rating: chefItems[0].chefRating,
-            location: chefItems[0].location || "Local Kitchen"
+            location: chefItems[0].location || "Local Kitchen",
+            bio: chefItems[0].chefBio,
+            speciality: chefItems[0].chefSpeciality
           });
         }
       } catch (err) {
@@ -57,6 +59,24 @@ export default function ChefDetail() {
     } catch (err) {
       console.error(err);
       alert("Error adding to cart ❌");
+    }
+  };
+
+  const handleSubscribe = async (item) => {
+    try {
+      const res = await axios.post(
+        "http://localhost:3000/api/subscriptions/subscribe",
+        { 
+          item,
+          chefId: id,
+          chefName: chefInfo?.name
+        },
+        { headers: { Authorization: user.token } }
+      );
+      alert("Subscription started! Check your 'My Subscriptions' page. ✅");
+    } catch (err) {
+      console.error(err);
+      alert("Error starting subscription ❌");
     }
   };
 
@@ -104,8 +124,16 @@ export default function ChefDetail() {
                 />
               </div>
               <div className="mt-2">
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">{chefInfo.name}</h1>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-slate-600">
+                <div className="flex flex-col md:flex-row items-center md:items-end gap-3 mb-2">
+                  <h1 className="text-3xl font-bold text-slate-900">{chefInfo.name}</h1>
+                  {chefInfo.speciality && (
+                    <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full border border-primary/20">
+                      {chefInfo.speciality}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-slate-600 mb-4">
                   <div className="flex items-center bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                     <Star className="w-4 h-4 mr-1 fill-current" />
                     {chefInfo.rating > 0 ? chefInfo.rating.toFixed(1) : "New"}
@@ -115,6 +143,12 @@ export default function ChefDetail() {
                     {chefInfo.location}
                   </div>
                 </div>
+
+                {chefInfo.bio && (
+                  <p className="max-w-2xl text-slate-500 text-sm leading-relaxed italic">
+                    "{chefInfo.bio}"
+                  </p>
+                )}
               </div>
             </div>
           ) : (
@@ -232,7 +266,12 @@ export default function ChefDetail() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredItems.map(item => (
-                <ItemCard key={item._id} item={item} onAddToCart={handleAddToCart} />
+                <ItemCard 
+                  key={item._id} 
+                  item={item} 
+                  onAddToCart={handleAddToCart} 
+                  onSubscribe={handleSubscribe} 
+                />
               ))}
             </div>
           )}

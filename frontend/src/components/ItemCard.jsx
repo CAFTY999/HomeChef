@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 
-export default function ItemCard({ item, onAddToCart }) {
+export default function ItemCard({ item, onAddToCart, onSubscribe }) {
   // Use actual isVeg from DB, fallback to true if undefined
   const isVeg = item.isVeg !== false;
   
@@ -80,13 +80,22 @@ export default function ItemCard({ item, onAddToCart }) {
             <span className="text-xl font-bold text-slate-800">₹{item.price}</span>
           </div>
           
-          <button 
-            onClick={() => onAddToCart && onAddToCart(item)}
-            className="flex items-center justify-center w-10 h-10 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl transition-colors"
-            title="Add to Cart"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
+          {item.type === "subscription" ? (
+            <button 
+              onClick={() => onSubscribe && onSubscribe(item)}
+              className="flex items-center justify-center px-4 h-10 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors text-sm"
+            >
+              Subscribe Now
+            </button>
+          ) : (
+            <button 
+              onClick={() => onAddToCart && onAddToCart(item)}
+              className="flex items-center justify-center w-10 h-10 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl transition-colors"
+              title="Add to Cart"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </div>
     </div>

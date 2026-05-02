@@ -23,6 +23,8 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  bio: String,
+  speciality: String, // e.g., "Authentic Godavari Pickles", "Hyderabadi Dum Biryani Expert"
 });
 
 module.exports = mongoose.model("User", userSchema);

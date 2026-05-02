@@ -17,6 +17,7 @@ import Cart from "./pages/customer/Cart";
 import ChefDetail from "./pages/customer/ChefDetail";
 import TrackOrder from "./pages/customer/TrackOrder";
 import CookGuide from "./pages/customer/CookGuide";
+import Subscriptions from "./pages/customer/Subscriptions";
 
 import Delivery from "./pages/delivery/Delivery";
 
@@ -113,6 +114,15 @@ function App() {
         element={
           <ProtectedRoute role="customer">
             <CookGuide />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/customer/my-subscriptions"
+        element={
+          <ProtectedRoute role="customer">
+            <Subscriptions />
           </ProtectedRoute>
         }
       />

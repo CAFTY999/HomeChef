@@ -8,6 +8,7 @@ const Cart = require("./models/Cart");
 const Order = require("./models/Order");
 const jwt = require("jsonwebtoken");
 const SECRET = "homechefsecret"; // later move to .env
+const Subscription = require("./models/Subscription");
 
 const app = express();
 
@@ -219,10 +220,10 @@ app.get("/api/items", async (req, res) => {
 
       return {
         ...item._doc,
-
         chefName: chef ? chef.name : "Unknown Chef",
-
-        chefRating: chef?.rating || 0
+        chefRating: chef?.rating || 0,
+        chefBio: chef?.bio || "",
+        chefSpeciality: chef?.speciality || ""
       };
     });
 
@@ -355,6 +356,13 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
     }
 
     const user = await User.findById(req.user.id);
+    
+    // Fetch chef name if not 'multiple'
+    let chefName = "HomeChef";
+    if (cart.chefId && cart.chefId !== "multiple") {
+      const chef = await User.findById(cart.chefId);
+      if (chef) chefName = chef.name;
+    }
 
     const total = cart.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -366,7 +374,7 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
       customerName: user.name,
 
       chefId: cart.chefId || "multiple",
-      chefName: "Chef",
+      chefName: chefName,
 
       type,
       items: cart.items,
@@ -646,6 +654,134 @@ app.post("/api/cook-guide", verifyToken, async (req, res) => {
   } catch (err) {
     console.error("Ollama Error:", err);
     res.status(500).json({ msg: "Error communicating with AI guide. Make sure Ollama is running." });
+  }
+});
+
+// 🔹 SUBSCRIPTION MANAGEMENT ROUTES
+app.post("/api/subscriptions/subscribe", verifyToken, async (req, res) => {
+  try {
+    const { item, chefId, chefName } = req.body;
+    
+    // Parse duration to number (e.g., "30 Days" -> 30)
+    const days = parseInt(item.duration) || 30;
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + days);
+
+    // Create delivery schedule
+    const deliverySchedule = [];
+    for (let i = 0; i < days; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+      deliverySchedule.push({ date, status: "pending" });
+    }
+
+    const subscription = new Subscription({
+      userId: req.user.id,
+      chefId: chefId || item.chefId,
+      itemId: item._id || item.itemId,
+      itemName: item.name,
+      chefName: chefName || "Premium Chef",
+      price: item.price,
+      duration: item.duration,
+      endDate: endDate,
+      daysRemaining: days,
+      deliverySchedule
+    });
+
+    await subscription.save();
+    res.json({ msg: "Subscription started successfully!", subscription });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: "Error starting subscription" });
+  }
+});
+
+app.get("/api/subscriptions/my", verifyToken, async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    res.json(subscriptions);
+  } catch (err) {
+    res.status(500).json({ msg: "Error fetching subscriptions" });
+  }
+});
+
+app.put("/api/subscriptions/update-status", verifyToken, async (req, res) => {
+  try {
+    const { subscriptionId, scheduleId, status } = req.body;
+    const sub = await Subscription.findById(subscriptionId);
+    
+    if (!sub) return res.status(404).json({ msg: "Subscription not found" });
+    
+    const scheduleItem = sub.deliverySchedule.id(scheduleId);
+    if (scheduleItem) {
+      scheduleItem.status = status;
+      await sub.save();
+    }
+    
+    res.json({ msg: "Status updated", sub });
+  } catch (err) {
+    res.status(500).json({ msg: "Error updating status" });
+  }
+});
+
+app.delete("/api/subscriptions/:id", verifyToken, async (req, res) => {
+  try {
+    const sub = await Subscription.findById(req.params.id);
+    if (!sub) return res.status(404).json({ msg: "Subscription not found" });
+    
+    if (sub.userId !== req.user.id) {
+      return res.status(403).json({ msg: "Not authorized" });
+    }
+
+    await Subscription.findByIdAndDelete(req.params.id);
+    res.json({ msg: "Subscription cancelled successfully" });
+  } catch (err) {
+    res.status(500).json({ msg: "Error cancelling subscription" });
+  }
+});
+
+// 🔹 CHEF & DELIVERY SUBSCRIPTION ROUTES
+app.get("/api/chef/subscriptions", verifyToken, async (req, res) => {
+  try {
+    const subs = await Subscription.find({ chefId: req.user.id }).sort({ createdAt: -1 });
+    res.json(subs);
+  } catch (err) {
+    res.status(500).json({ msg: "Error fetching chef subscriptions" });
+  }
+});
+
+app.get("/api/delivery/subscriptions/today", verifyToken, async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Find subscriptions that have a delivery scheduled for today with status 'pending'
+    const subs = await Subscription.find({
+      "deliverySchedule": {
+        $elemMatch: {
+          date: { $gte: today, $lt: tomorrow },
+          status: "pending"
+        }
+      }
+    });
+
+    // Extract only today's schedule item for each sub
+    const result = subs.map(sub => {
+      const todayItem = sub.deliverySchedule.find(d => 
+        new Date(d.date) >= today && new Date(d.date) < tomorrow
+      );
+      return {
+        ...sub._doc,
+        todaySchedule: todayItem
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: "Error fetching today's subscription deliveries" });
   }
 });
 

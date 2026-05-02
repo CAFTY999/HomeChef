@@ -29,6 +29,24 @@ export default function CustomerSubscription() {
     }
   };
 
+  const handleSubscribe = async (item) => {
+    try {
+      await axios.post(
+        "http://localhost:3000/api/subscriptions/subscribe",
+        { 
+          item,
+          chefId: item.chefId,
+          chefName: item.chefName
+        },
+        { headers: { Authorization: user.token } }
+      );
+      alert("Subscription started! Check your 'My Subscriptions' page. ✅");
+    } catch (err) {
+      console.error(err);
+      alert("Error starting subscription ❌");
+    }
+  };
+
   const fetchItems = async () => {
     try {
       const res = await axios.get("http://localhost:3000/api/items");
@@ -116,7 +134,12 @@ export default function CustomerSubscription() {
                 <h2 className="text-2xl font-bold text-slate-800 mb-6">Plans matching "{search}"</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {dishes.map(item => (
-                    <ItemCard key={item._id} item={item} onAddToCart={handleAddToCart} />
+                    <ItemCard 
+                      key={item._id} 
+                      item={item} 
+                      onAddToCart={handleAddToCart} 
+                      onSubscribe={handleSubscribe}
+                    />
                   ))}
                 </div>
               </div>
