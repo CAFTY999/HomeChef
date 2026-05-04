@@ -1,13 +1,13 @@
 import Navbar from "../../components/Navbar";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
-import { PackageOpen, MapPin, ChefHat, Bike, CheckCircle2, Clock, Navigation, Zap, ArrowLeft, ArrowRight } from "lucide-react";
+import { PackageOpen, MapPin, ChefHat, Bike, CheckCircle2, Clock, Navigation, Zap, ArrowRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 // Fix leaflet icon paths
 delete L.Icon.Default.prototype._getIconUrl;
@@ -39,6 +39,18 @@ const deliveryIcon = new L.Icon({
   className: 'smooth-marker'
 });
 
+// Helper component to handle map view updates
+function ChangeView({ chefPos, userPos }) {
+  const map = useMap();
+  useEffect(() => {
+    if (chefPos && userPos) {
+      const bounds = L.latLngBounds([chefPos, userPos]);
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    }
+  }, [chefPos, userPos, map]);
+  return null;
+}
+
 export default function TrackOrder() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -48,8 +60,9 @@ export default function TrackOrder() {
   const [routePath, setRoutePath] = useState([]);
   const [order, setOrder] = useState(null);
   
-  const [chefPos, setChefPos] = useState([12.9716, 77.5946]);
-  const [userPos, setUserPos] = useState([12.9352, 77.6245]);
+  // Initial center on Hyderabad
+  const [chefPos, setChefPos] = useState(null);
+  const [userPos, setUserPos] = useState(null);
 
   useEffect(() => {
     const fetchOrderStatus = async () => {
@@ -87,6 +100,7 @@ export default function TrackOrder() {
 
   useEffect(() => {
     const fetchRoute = async () => {
+      if (!chefPos || !userPos) return;
       try {
         const url = `https://router.project-osrm.org/route/v1/driving/${chefPos[1]},${chefPos[0]};${userPos[1]},${userPos[0]}?geometries=geojson`;
         const res = await axios.get(url);
@@ -98,9 +112,7 @@ export default function TrackOrder() {
         console.error("Error fetching route", err);
       }
     };
-    if (chefPos && userPos) {
-      fetchRoute();
-    }
+    fetchRoute();
   }, [chefPos, userPos]);
 
   useEffect(() => {
@@ -125,7 +137,7 @@ export default function TrackOrder() {
     }
   }, [order?.status, orderId, user.token]);
 
-  let deliveryPos = chefPos;
+  let deliveryPos = chefPos || [17.3850, 78.4867];
   if (routePath.length > 0 && progress > 40) {
     const fraction = Math.min((progress - 40) / 60, 1);
     const exactIndex = fraction * (routePath.length - 1);
@@ -143,7 +155,7 @@ export default function TrackOrder() {
         p1[1] + (p2[1] - p1[1]) * remainder
       ];
     }
-  } else if (progress > 40) {
+  } else if (progress > 40 && chefPos && userPos) {
     const fraction = Math.min((progress - 40) / 60, 1);
     deliveryPos = [
       chefPos[0] + (userPos[0] - chefPos[0]) * fraction,
@@ -252,36 +264,40 @@ export default function TrackOrder() {
           animate={{ opacity: 1, scale: 1 }}
           className="flex-1 glass-card rounded-[4rem] border-4 border-white shadow-4xl overflow-hidden min-h-[600px] relative z-0"
         >
-          {chefPos && userPos && (
-            <MapContainer 
-              center={[(chefPos[0] + userPos[0])/2, (chefPos[1] + userPos[1])/2]} 
-              zoom={13} 
-              className="w-full h-full"
-              scrollWheelZoom={false}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              
-              {routePath.length > 0 ? (
-                <Polyline positions={routePath} color="#f97316" weight={6} opacity={0.8} lineJoin="round" />
-              ) : (
-                <Polyline positions={[chefPos, userPos]} color="#94a3b8" dashArray="10, 15" weight={3} />
-              )}
-              
-              <Marker position={chefPos} icon={chefIcon}>
-                <Popup><span className="font-black text-xs">Origin Kitchen</span></Popup>
-              </Marker>
+          <MapContainer 
+            center={[17.3850, 78.4867]} 
+            zoom={13} 
+            className="w-full h-full"
+            scrollWheelZoom={false}
+          >
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            
+            {chefPos && userPos && <ChangeView chefPos={chefPos} userPos={userPos} />}
 
-              <Marker position={userPos} icon={userIcon}>
-                <Popup><span className="font-black text-xs">Destination Point</span></Popup>
-              </Marker>
-
-              {progress > 40 && progress < 100 && (
-                <Marker position={deliveryPos} icon={deliveryIcon}>
-                  <Popup><span className="font-black text-xs">Live Pilot Tracking</span></Popup>
+            {chefPos && userPos && (
+              <>
+                {routePath.length > 0 ? (
+                  <Polyline positions={routePath} color="#f97316" weight={6} opacity={0.8} lineJoin="round" />
+                ) : (
+                  <Polyline positions={[chefPos, userPos]} color="#94a3b8" dashArray="10, 15" weight={3} />
+                )}
+                
+                <Marker position={chefPos} icon={chefIcon}>
+                  <Popup><span className="font-black text-xs">Origin Kitchen</span></Popup>
                 </Marker>
-              )}
-            </MapContainer>
-          )}
+
+                <Marker position={userPos} icon={userIcon}>
+                  <Popup><span className="font-black text-xs">Destination Point</span></Popup>
+                </Marker>
+
+                {progress > 40 && progress < 100 && (
+                  <Marker position={deliveryPos} icon={deliveryIcon}>
+                    <Popup><span className="font-black text-xs">Live Pilot Tracking</span></Popup>
+                  </Marker>
+                )}
+              </>
+            )}
+          </MapContainer>
 
           <div className="absolute top-10 left-10 z-[10] flex flex-col gap-4">
              <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-white shadow-2xl flex items-center gap-3">

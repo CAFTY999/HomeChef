@@ -377,7 +377,8 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
       // 🍕 Group items by chefId for ready food
       const itemsByChef = {};
       cart.items.forEach(item => {
-        const cId = item.chefId || "unknown";
+        // Fallback to cart.chefId if item.chefId is missing
+        const cId = item.chefId || cart.chefId || "unknown";
         if (!itemsByChef[cId]) itemsByChef[cId] = [];
         itemsByChef[cId].push(item);
       });
@@ -386,9 +387,11 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
         const chefItems = itemsByChef[cId];
         const chefTotal = chefItems.reduce((s, i) => s + i.price * i.quantity, 0);
         
-        let chefName = "HomeChef";
-        const chefUser = await User.findById(cId);
-        if (chefUser) chefName = chefUser.name;
+        let chefName = "HomeChef Kitchen";
+        if (cId !== "unknown" && mongoose.Types.ObjectId.isValid(cId)) {
+          const chefUser = await User.findById(cId);
+          if (chefUser) chefName = chefUser.name;
+        }
 
         const order = new Order({
           customerId: req.user.id,
@@ -408,8 +411,8 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
       }
     } else {
       // 🍱 Single chef for Daily/Subscription
-      let chefName = "HomeChef";
-      if (cart.chefId) {
+      let chefName = "HomeChef Kitchen";
+      if (cart.chefId && mongoose.Types.ObjectId.isValid(cart.chefId)) {
         const chef = await User.findById(cart.chefId);
         if (chef) chefName = chef.name;
       }

@@ -239,14 +239,29 @@ export default function Profile() {
                             <p className="text-sm text-slate-400 font-bold mt-1">{order.items?.map(i => i.name).join(', ') || "Custom Order"}</p>
                          </div>
                       </div>
-                      <div className="flex items-center gap-8 w-full md:w-auto">
-                         <div className="text-right hidden md:block">
+                      <div className="flex items-center gap-4 w-full md:w-auto">
+                         <div className="text-right hidden md:block mr-4">
                             <p className="text-3xl font-black text-slate-900 tracking-tighter">₹{order.total}</p>
                             <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-1">{new Date(order.createdAt).toLocaleTimeString()}</p>
                          </div>
-                         <button onClick={() => navigate(`/customer/track/${order._id}`)} className="flex-1 md:flex-none bg-slate-900 text-white px-12 py-5 rounded-2xl font-black shadow-2xl shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center gap-3">
-                            Track Order <ArrowRight className="w-5 h-5" />
-                         </button>
+                         <div className="flex gap-2 flex-1 md:flex-none">
+                            <button onClick={() => navigate(`/customer/track/${order._id}`)} className="flex-1 bg-slate-900 text-white px-8 py-5 rounded-2xl font-black shadow-2xl shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-3">
+                               Track <ArrowRight className="w-4 h-4" />
+                            </button>
+                            {["delivery_accepted", "out_for_delivery"].includes(order.status) && (
+                               <button 
+                                 onClick={async () => {
+                                   if(window.confirm("Mark this order as received?")) {
+                                     await axios.put(`http://localhost:3000/api/order-status/${order._id}`, { status: "completed" }, { headers: { Authorization: user.token } });
+                                     fetchOrders();
+                                   }
+                                 }} 
+                                 className="bg-green-500 text-white px-6 py-5 rounded-2xl font-black shadow-2xl shadow-green-900/10 hover:bg-green-600 transition-all flex items-center justify-center gap-2"
+                               >
+                                  <CheckCircle2 className="w-4 h-4" />
+                               </button>
+                            )}
+                         </div>
                       </div>
                    </motion.div>
                  ))}
