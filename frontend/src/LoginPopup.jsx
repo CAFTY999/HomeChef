@@ -2,7 +2,9 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
-import { X, Mail, Lock, ArrowRight } from "lucide-react";
+import { X, Mail, Lock, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import mascot from "./assets/mascot.png"; // adjust path
 
 export default function LoginPopup({ setShowLogin, openSignup }) {
   const navigate = useNavigate();
@@ -13,7 +15,7 @@ export default function LoginPopup({ setShowLogin, openSignup }) {
     email: "",
     password: ""
   });
-
+ 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -33,65 +35,87 @@ export default function LoginPopup({ setShowLogin, openSignup }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white rounded-[2.5rem] shadow-4xl w-full max-w-4xl overflow-hidden relative flex animate-in zoom-in-95 duration-300">
-        
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" 
+        onClick={() => setShowLogin(false)}
+      ></motion.div>
+      
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="bg-white rounded-[3.5rem] shadow-4xl w-full max-w-4xl overflow-hidden relative flex flex-col lg:flex-row z-10"
+      >
         {/* Close Button */}
         <button 
           onClick={() => setShowLogin(false)}
-          className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-10"
+          className="absolute top-8 right-8 p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all z-20"
         >
           <X className="w-6 h-6" />
         </button>
 
-        {/* Left Side: Mascot & Branding */}
-        <div className="hidden lg:flex flex-1 bg-primary/5 p-12 flex-col justify-between items-center text-center">
-           <div className="w-full">
-              <h2 className="text-3xl font-black text-slate-900 mb-2">Welcome Back</h2>
-              <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">Sign in to HomeChef</p>
+        {/* Left Side: Immersive Branding */}
+        <div className="hidden lg:flex flex-1 bg-slate-900 p-16 flex-col justify-between relative overflow-hidden">
+           <div className="relative z-10">
+              <div className="flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-[0.3em] mb-4">
+                <Sparkles className="w-4 h-4" /> Welcome Back
+              </div>
+              <h2 className="text-5xl font-black text-white leading-[0.9] tracking-tighter mb-6">Continue your <br/> <span className="text-primary italic">culinary</span> journey.</h2>
            </div>
-           <img src="/src/assets/mascot.png" alt="HomeChef Mascot" className="w-full max-h-[400px] object-contain drop-shadow-2xl" />
-           <p className="text-xs font-bold text-slate-400 italic">"Authentic flavors, straight from a home kitchen."</p>
+           
+           <div>
+            <img src={mascot} alt="HomeChef Mascot" className="w-full object-contain" />
+           </div>
+
+           {/* Decorative elements */}
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-br from-primary/20 via-transparent to-transparent opacity-30 rounded-full blur-3xl"></div>
         </div>
 
         {/* Right Side: Form */}
-        <div className="flex-1 p-8 lg:p-16 flex flex-col justify-center">
-          <div className="mb-10 lg:hidden text-center">
-             <h2 className="text-3xl font-black text-slate-900 mb-2">Login</h2>
-             <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">Welcome to HomeChef</p>
+        <div className="flex-1 p-10 lg:p-20 flex flex-col justify-center bg-white">
+          <div className="mb-12">
+             <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Login</h2>
+             <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Sign in to your HomeChef account</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input name="email" type="email" required placeholder="your@email.com" onChange={handleChange} className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary transition-all" />
+          <form onSubmit={handleLogin} className="space-y-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Account Email</label>
+              <div className="relative group">
+                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+                <input name="email" type="email" required placeholder="your@email.com" onChange={handleChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input name="password" type="password" required placeholder="••••••••" onChange={handleChange} className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary transition-all" />
+            <div className="space-y-3">
+              <div className="flex justify-between items-center px-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Security Key</label>
+                <button type="button" className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Forgot?</button>
+              </div>
+              <div className="relative group">
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+                <input name="password" type="password" required placeholder="••••••••" onChange={handleChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" />
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary-dark text-white font-black py-5 rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-              {loading ? "Authenticating..." : "Sign In"}
-              <ArrowRight className="w-5 h-5" />
+            <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-6 rounded-2xl shadow-2xl shadow-slate-900/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] group mt-4">
+              {loading ? "Verifying..." : "Sign into Account"}
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
 
-            <div className="pt-6 text-center border-t border-slate-50">
-              <p className="text-sm font-bold text-slate-500">
-                New to the platform?{" "}
-                <button type="button" onClick={openSignup} className="text-primary font-black hover:underline underline-offset-4">Join Now</button>
+            <div className="pt-10 text-center border-t border-slate-50">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                New to HomeChef?{" "}
+                <button type="button" onClick={openSignup} className="text-primary font-black hover:underline underline-offset-4 ml-2">Create Account</button>
               </p>
             </div>
           </form>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

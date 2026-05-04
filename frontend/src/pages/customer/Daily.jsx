@@ -32,7 +32,10 @@ export default function CustomerDaily() {
   const fetchItems = async () => {
     try {
       const res = await axios.get("http://localhost:3000/api/items");
-      const dailyItems = res.data.filter(i => i.type === "daily");
+      const dailyItems = res.data.filter(i => 
+        i.type === "daily" && 
+        (!user.location || (i.chefLocation || "").toLowerCase().includes(user.location.toLowerCase()))
+      );
 
       // Filter logic based on search
       const matchedDishes = [];

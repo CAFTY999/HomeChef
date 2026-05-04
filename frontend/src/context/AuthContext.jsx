@@ -19,11 +19,23 @@ export const AuthProvider = ({ children }) => {
     const userData = {
       token: data.token,
       role: data.role,
-      name: data.name
+      name: data.name,
+      location: data.location,
+      address: data.address,
+      coordinates: data.coordinates
     };
 
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
+  };
+
+  // 🆙 UPDATE USER (for profile updates)
+  const updateUser = (newData) => {
+    setUser(prev => {
+      const updated = { ...prev, ...newData };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // 🚪 LOGOUT
@@ -33,7 +45,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

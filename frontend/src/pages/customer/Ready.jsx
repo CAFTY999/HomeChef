@@ -33,7 +33,10 @@ export default function CustomerReady() {
     axios
       .get("http://localhost:3000/api/items")
       .then(res => {
-        setItems(res.data.filter(i => i.type === "ready"));
+        setItems(res.data.filter(i => 
+          i.type === "ready" && 
+          (!user.location || (i.chefLocation || "").toLowerCase().includes(user.location.toLowerCase()))
+        ));
       })
       .catch(err => console.log(err))
       .finally(() => setLoading(false));

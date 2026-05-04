@@ -94,7 +94,9 @@ app.post("/api/signup", async (req, res) => {
     res.json({
       message: "User registered",
       role,
-      token
+      token,
+      location: user.location,
+      coordinates: user.coordinates
     });
 
   } catch (err) {
@@ -128,7 +130,9 @@ app.post("/api/login", async (req, res) => {
       message: "Login successful",
       token,
       role: user.role,
-      name: user.name
+      name: user.name,
+      location: user.location,
+      coordinates: user.coordinates
     });
 
   } catch (err) {
@@ -159,7 +163,7 @@ app.put("/api/profile-data", verifyToken, async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { name, location, phone, address },
-      { new: true }
+      { returnDocument: 'after' }
     ).select("-password");
 
     res.json(user);
@@ -224,7 +228,9 @@ app.get("/api/items", async (req, res) => {
         chefName: chef ? chef.name : "Unknown Chef",
         chefRating: chef?.rating || 0,
         chefBio: chef?.bio || "",
-        chefSpeciality: chef?.speciality || ""
+        chefSpeciality: chef?.speciality || "",
+        chefLocation: chef?.location || "Local",
+        chefCoordinates: chef?.coordinates || null
       };
     });
 
