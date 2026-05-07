@@ -13,7 +13,8 @@ export default function LoginPopup({ setShowLogin, openSignup }) {
 
   const [form, setForm] = useState({
     email: "",
-    password: ""
+    password: "",
+    role: "customer"
   });
  
   const handleChange = (e) => {
@@ -35,7 +36,7 @@ export default function LoginPopup({ setShowLogin, openSignup }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -48,14 +49,14 @@ export default function LoginPopup({ setShowLogin, openSignup }) {
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="bg-white rounded-[3.5rem] shadow-4xl w-full max-w-4xl overflow-hidden relative flex flex-col lg:flex-row z-10"
+        className="bg-white rounded-[2rem] lg:rounded-[3.5rem] shadow-4xl w-full max-w-4xl overflow-hidden relative flex flex-col lg:flex-row z-10 max-h-[92vh] lg:max-h-[95vh]"
       >
         {/* Close Button */}
         <button 
           onClick={() => setShowLogin(false)}
-          className="absolute top-8 right-8 p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all z-20"
+          className="absolute top-4 right-4 sm:top-8 sm:right-8 p-2 sm:p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all z-20"
         >
-          <X className="w-6 h-6" />
+          <X className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
 
         {/* Left Side: Immersive Branding */}
@@ -76,13 +77,34 @@ export default function LoginPopup({ setShowLogin, openSignup }) {
         </div>
 
         {/* Right Side: Form */}
-        <div className="flex-1 p-10 lg:p-20 flex flex-col justify-center bg-white">
-          <div className="mb-12">
-             <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Login</h2>
+        <div className="flex-1 p-6 sm:p-10 lg:p-20 flex flex-col justify-center bg-white">
+          <div className="mb-8 sm:mb-12">
+             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter mb-2">Login</h2>
              <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Sign in to your HomeChef account</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-8">
+          <form onSubmit={handleLogin} className="space-y-6 sm:space-y-8">
+            {/* Role Toggle for Login */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Login as</label>
+              <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                {[
+                  { id: "customer", label: "Customer" },
+                  { id: "chef", label: "Chef" },
+                  { id: "delivery_partner", label: "Delivery" }
+                ].map(r => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setForm({...form, role: r.id})}
+                    className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${form.role === r.id ? 'bg-white text-primary shadow-sm' : 'text-slate-400'}`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
             <div className="space-y-3">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Account Email</label>
               <div className="relative group">

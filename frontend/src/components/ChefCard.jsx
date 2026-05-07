@@ -28,12 +28,12 @@ export default function ChefCard({ chefId, chefName, rating, location, cuisine }
         </div>
       </div>
       
-      <h3 className="text-xl font-bold text-slate-800 mb-1">{chefName}</h3>
+      <h3 className="text-xl font-bold text-slate-800 mb-1 line-clamp-2 hover-expand cursor-pointer" title={chefName}>{chefName}</h3>
       {cuisine && <p className="text-sm text-slate-500 mb-3">{cuisine}</p>}
       
       <div className="flex items-center text-slate-500 text-sm mt-auto bg-slate-50 px-3 py-1.5 rounded-full">
         <MapPin className="h-3.5 w-3.5 mr-1" />
-        <span className="truncate max-w-[120px]">{location || "Local Chef"}</span>
+        <span className="truncate max-w-[120px]" title={location}>{location || "Local Chef"}</span>
       </div>
     </div>
   );

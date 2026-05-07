@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
   name: String,
-  email: { type: String, unique: true },
+  email: { type: String },
   password: String,
   location: String,
   coordinates: [Number], // [lat, lng]
@@ -27,5 +27,8 @@ const userSchema = new mongoose.Schema({
   speciality: String, // e.g., "Authentic Godavari Pickles", "Hyderabadi Dum Biryani Expert"
   walletBalance: { type: Number, default: 1000 }, // Starting balance for testing
 });
+
+// Allow same email for different roles
+userSchema.index({ email: 1, role: 1 }, { unique: true });
 
 module.exports = mongoose.model("User", userSchema);

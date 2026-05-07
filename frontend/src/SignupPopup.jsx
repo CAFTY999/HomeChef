@@ -27,16 +27,49 @@ export default function SignupPopup({ setShowSignup, openLogin }) {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", location: "", password: "", role: "customer" });
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", location: "", password: "", role: "customer", otp: "" });
   const [coordinates, setCoordinates] = useState([12.9716, 77.5946]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const handleSendOTP = async () => {
+    const email = form.email.trim().toLowerCase();
+    if (!email.endsWith("@gmail.com")) {
+      alert("Only @gmail.com emails are allowed");
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const res = await axios.post("http://localhost:3000/api/send-otp", { email });
+      setOtpSent(true);
+      alert(res.data.message);
+      // For development, if email fails but OTP is returned in devOtp
+      if (res.data.devOtp) {
+        console.log("Dev OTP:", res.data.devOtp);
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to send OTP");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const handleSignup = async (e) => {
     e.preventDefault();
+    if (!otpSent) {
+      alert("Please verify your email with OTP first");
+      return;
+    }
     setLoading(true);
     try {
-      const payload = { ...form, coordinates };
+      const payload = { 
+        ...form, 
+        email: form.email.trim().toLowerCase(),
+        otp: form.otp.trim(),
+        coordinates 
+      };
       const res = await axios.post("http://localhost:3000/api/signup", payload);
       login({ token: res.data.token, role: res.data.role, name: form.name });
       navigate(res.data.role === "delivery_partner" ? "/delivery" : "/" + res.data.role);
@@ -48,7 +81,7 @@ export default function SignupPopup({ setShowSignup, openLogin }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -61,10 +94,10 @@ export default function SignupPopup({ setShowSignup, openLogin }) {
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="bg-white rounded-[3.5rem] shadow-4xl w-full max-w-5xl overflow-hidden relative flex flex-col lg:flex-row z-10 max-h-[95vh]"
+        className="bg-white rounded-[2rem] lg:rounded-[3.5rem] shadow-4xl w-full max-w-6xl overflow-hidden relative flex flex-col lg:flex-row z-10 max-h-[95vh] lg:max-h-[90vh]"
       >
-        <button onClick={() => setShowSignup(false)} className="absolute top-8 right-8 p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all z-20">
-          <X className="w-6 h-6" />
+        <button onClick={() => setShowSignup(false)} className="absolute top-4 right-4 sm:top-8 sm:right-8 p-2 sm:p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all z-20">
+          <X className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
 
         {/* Left Side: Benefits & Mascot */}
@@ -87,13 +120,13 @@ export default function SignupPopup({ setShowSignup, openLogin }) {
         </div>
 
         {/* Right Side: Form */}
-        <div className="flex-1 p-10 lg:p-16 overflow-y-auto no-scrollbar bg-white">
-          <div className="mb-10">
-             <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Create Account</h2>
+        <div className="flex-1 p-6 sm:p-10 lg:p-10 xl:p-16 overflow-y-auto no-scrollbar bg-white">
+          <div className="mb-6 sm:mb-10">
+             <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tighter mb-2">Create Account</h2>
              <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Start your culinary journey with us</p>
           </div>
 
-          <form onSubmit={handleSignup} className="space-y-8">
+          <form onSubmit={handleSignup} className="space-y-6 sm:space-y-8">
             {/* Role Toggle */}
             <div className="space-y-3">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Select your role</label>
@@ -115,7 +148,7 @@ export default function SignupPopup({ setShowSignup, openLogin }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-6 sm:gap-8">
                <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Full Name</label>
                   <div className="relative group">
@@ -125,12 +158,68 @@ export default function SignupPopup({ setShowSignup, openLogin }) {
                </div>
                <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email Address</label>
-                  <div className="relative group">
-                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-primary transition-colors" />
-                    <input name="email" type="email" required placeholder="your@email.com" onChange={handleChange} className="w-full pl-12 pr-4 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" />
+                   <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative group flex-1">
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-primary transition-colors" />
+                      <input 
+                        name="email" 
+                        type="email" 
+                        required 
+                        disabled={otpSent}
+                        placeholder="your@gmail.com" 
+                        value={form.email}
+                        onChange={handleChange} 
+                        className={`w-full pl-12 pr-4 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner ${otpSent ? 'opacity-60 cursor-not-allowed' : ''}`} 
+                      />
+                    </div>
+                    {!otpSent ? (
+                      <button 
+                        type="button" 
+                        onClick={handleSendOTP} 
+                        disabled={otpLoading || !form.email}
+                        className="flex-1 px-6 py-5 bg-primary/10 text-primary font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-primary/20 transition-all disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {otpLoading ? "..." : "Send OTP"}
+                      </button>
+                    ) : (
+                      <button 
+                        type="button" 
+                        onClick={() => setOtpSent(false)} 
+                        className="flex-1 px-6 py-5 bg-slate-100 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all whitespace-nowrap"
+                      >
+                        Change
+                      </button>
+                    )}
                   </div>
-               </div>
-            </div>
+                </div>
+              </div>
+
+              {otpSent && (
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 flex justify-between">
+                    <span>Enter 6-Digit OTP</span>
+                    <button 
+                      type="button" 
+                      onClick={handleSendOTP}
+                      className="text-primary hover:underline"
+                    >
+                      Resend OTP?
+                    </button>
+                  </label>
+                <div className="relative group">
+                  <CheckCircle2 className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary transition-colors" />
+                  <input 
+                    name="otp" 
+                    required 
+                    placeholder="123456" 
+                    maxLength={6}
+                    onChange={handleChange} 
+                    className="w-full pl-12 pr-4 py-5 bg-primary/5 border-2 border-primary/20 rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" 
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary uppercase">OTP Sent!</span>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Delivery Location</label>
@@ -156,8 +245,16 @@ export default function SignupPopup({ setShowSignup, openLogin }) {
                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Secure Password</label>
                <div className="relative group">
                 <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-primary transition-colors" />
-                <input name="password" type="password" required placeholder="••••••••" onChange={handleChange} className="w-full pl-12 pr-4 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" />
+                <input 
+                  name="password" 
+                  type="password" 
+                  required 
+                  placeholder="Min 8 chars, 1 letter, 1 special char" 
+                  onChange={handleChange} 
+                  className="w-full pl-12 pr-4 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" 
+                />
               </div>
+              <p className="text-[9px] font-bold text-slate-400 px-2">Must contain at least 8 characters, letters, numbers and special symbols (@$!%*#?&).</p>
             </div>
 
             <div className="pt-4">

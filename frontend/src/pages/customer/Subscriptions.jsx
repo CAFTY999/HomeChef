@@ -120,7 +120,7 @@ export default function Subscriptions() {
                       <Package className="w-10 h-10" />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-black text-slate-900 tracking-tight">{sub.itemName}</h2>
+                      <h2 className="text-3xl font-black text-slate-900 tracking-tight line-clamp-1 hover-expand cursor-pointer" title={sub.itemName}>{sub.itemName}</h2>
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
                           <User className="h-3 w-3" /> {sub.chefName}

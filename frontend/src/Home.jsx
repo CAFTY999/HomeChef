@@ -19,26 +19,26 @@ export default function Home() {
       {/* NAVBAR */}
       <nav className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
         <div className="flex items-center group cursor-pointer">
-          <div className="w-16 h-16 bg-white rounded-full border border-slate-100 shadow-md group-hover:shadow-lg transition-all duration-300 overflow-hidden flex items-center justify-center">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border border-slate-100 shadow-md group-hover:shadow-lg transition-all duration-300 overflow-hidden flex items-center justify-center">
             <img 
               src="/src/assets/logo.png" 
               alt="HomeChef Logo" 
               className="w-full h-full object-cover scale-[1.3] transition-transform duration-500 group-hover:scale-[1.4]" 
             />
           </div>
-          <span className="ml-4 text-3xl font-black text-slate-900 tracking-tighter uppercase">HomeChef</span>
+          <span className="ml-2 sm:ml-4 text-xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase">HomeChef</span>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <button 
             onClick={() => setShowLogin(true)}
-            className="text-slate-600 hover:text-primary font-medium px-4 py-2 transition-colors"
+            className="text-slate-600 hover:text-primary font-bold text-xs sm:text-sm px-2 sm:px-4 py-2 transition-colors"
           >
             Login
           </button>
           <button 
             onClick={() => setShowSignup(true)}
-            className="bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-full font-medium transition-colors shadow-sm hover:shadow"
+            className="bg-primary hover:bg-primary-dark text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm transition-all shadow-sm hover:shadow-lg active:scale-95"
           >
             Sign Up
           </button>
@@ -52,7 +52,7 @@ export default function Home() {
             <span className="flex h-2 w-2 bg-orange-500 rounded-full mr-2"></span>
             Now delivering in your neighborhood
           </div>
-          <h1 className="text-5xl lg:text-7xl font-extrabold text-slate-900 tracking-tight mb-6 leading-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-slate-900 tracking-tight mb-6 leading-tight">
             Craving real <br className="hidden lg:block"/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-400">
               homemade food?

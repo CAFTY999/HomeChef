@@ -32,7 +32,7 @@ export default function ItemCard({ item, onAddToCart, onSubscribe }) {
       
       <div className="p-4">
         <div className="flex justify-between items-start mb-1">
-          <h3 className="font-semibold text-lg text-slate-800 line-clamp-1">{item.name}</h3>
+          <h3 className="font-semibold text-lg text-slate-800 line-clamp-2 hover-expand cursor-pointer" title={item.name}>{item.name}</h3>
           {item.type === "subscription" && item.duration && (
             <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full whitespace-nowrap">
               {item.duration}
@@ -52,7 +52,7 @@ export default function ItemCard({ item, onAddToCart, onSubscribe }) {
         )}
         
         {item.description && (
-          <p className="text-sm text-slate-500 mb-4 line-clamp-2">{item.description}</p>
+          <p className="text-sm text-slate-500 mb-4 line-clamp-2 hover-expand cursor-pointer" title={item.description}>{item.description}</p>
         )}
         
         {/* Subscription Details (Categories & Options) */}

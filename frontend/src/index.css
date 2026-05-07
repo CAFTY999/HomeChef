@@ -35,6 +35,14 @@
   .premium-shadow {
     @apply shadow-[0_20px_50px_rgba(0,0,0,0.05)];
   }
+
+  .hover-expand {
+    @apply transition-all duration-300;
+  }
+  
+  .hover-expand:hover {
+    @apply line-clamp-none;
+  }
 }
 
 /* Custom Scrollbar */

@@ -238,7 +238,7 @@ export default function CustomerSubscription() {
                         />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors">{chef.chefName}</h3>
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors line-clamp-2 hover-expand cursor-pointer" title={chef.chefName}>{chef.chefName}</h3>
                         <div className="flex items-center gap-3 mt-1">
                           <div className="flex items-center text-xs font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg">
                             ★ {chef.chefRating.toFixed(1)}
@@ -250,7 +250,7 @@ export default function CustomerSubscription() {
                       </div>
                     </div>
                     
-                    <p className="text-slate-500 font-medium line-clamp-2 italic text-sm leading-relaxed mb-8">
+                    <p className="text-slate-500 font-medium line-clamp-2 italic text-sm leading-relaxed mb-8 hover-expand cursor-pointer" title={chef.bio || `Specialist in ${chef.speciality || 'Traditional Telugu Cuisine'}`}>
                       "{chef.bio || `Specialist in ${chef.speciality || 'Traditional Telugu Cuisine'}`}"
                     </p>
                     

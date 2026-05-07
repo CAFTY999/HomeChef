@@ -10,6 +10,8 @@ const jwt = require("jsonwebtoken");
 const SECRET = "homechefsecret"; // later move to .env
 const Subscription = require("./models/Subscription");
 const Transaction = require("./models/Transaction");
+const OTP = require("./models/OTP");
+const nodemailer = require("nodemailer");
 
 const app = express();
 
@@ -39,17 +41,89 @@ app.use(express.json());
 
 // MongoDB Connection
 mongoose.connect("mongodb://127.0.0.1:27017/homechef")
-  .then(() => console.log("MongoDB Connected"))
+  .then(async () => {
+    console.log("MongoDB Connected");
+    // Clean up old unique index if it exists to support new multi-role indexing
+    try {
+      const collections = await mongoose.connection.db.listCollections({ name: 'users' }).toArray();
+      if (collections.length > 0) {
+        await mongoose.connection.db.collection('users').dropIndex('email_1');
+        console.log("Old unique email index dropped successfully");
+      }
+    } catch (err) {
+      // Index might already be gone or named differently, ignore errors
+      console.log("Note: Old email index cleanup skipped (may already be removed)");
+    }
+  })
   .catch(err => console.log(err));
 
 
 // 🔹 Detect role from email
 const getRole = (email) => {
-  if (email.endsWith("@chef")) return "chef";
-  if (email.endsWith("@adm")) return "admin";
-  if (email.endsWith("@delivery")) return "delivery_partner";
+  // We now restrict all to @gmail.com, so we rely on bodyRole or default to customer
   return "customer";
 };
+
+// 🔹 NODEMAILER SETUP
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "bhavikarisetty@gmail.com", // Replace with your gmail
+    pass: "vwbl rgjb hpvi egtc"    // Replace with your app password
+  }
+});
+
+// 🔹 PASSWORD VALIDATION
+const validatePassword = (password) => {
+  const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+  return regex.test(password);
+};
+
+// 🔹 SEND OTP ROUTE
+app.post("/api/send-otp", async (req, res) => {
+  try {
+    const { email: rawEmail } = req.body;
+    const email = rawEmail.trim().toLowerCase();
+
+    if (!email.endsWith("@gmail.com")) {
+      return res.status(400).json({ error: "Only @gmail.com emails are allowed" });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save to DB
+    await OTP.findOneAndUpdate(
+      { email },
+      { otp, createdAt: new Date() },
+      { upsert: true, returnDocument: 'after' }
+    );
+
+    // Send Email
+    const mailOptions = {
+      from: "HomeChef <your-email@gmail.com>",
+      to: email,
+      subject: "Your HomeChef Verification Code",
+      text: `Your OTP for HomeChef signup is: ${otp}. It expires in 5 minutes.`
+    };
+
+    // Note: In real world, use await transporter.sendMail(mailOptions);
+    // For now, I'll log it and the user can set up credentials later
+    console.log(`OTP for ${email}: ${otp}`);
+
+    // Attempting to send (will fail if credentials are not set)
+    try {
+      await transporter.sendMail(mailOptions);
+      res.json({ message: "OTP sent to your email" });
+    } catch (mailErr) {
+      console.log("Mail send failed, but OTP logged for dev:", otp);
+      res.json({ message: "OTP generated (Check console for dev)", devOtp: otp });
+    }
+
+  } catch (err) {
+    res.status(500).json({ error: "Error sending OTP" });
+  }
+});
 
 app.get("/", (req, res) => {
   res.send("Backend working 🚀");
@@ -57,19 +131,44 @@ app.get("/", (req, res) => {
 // 🔹 SIGNUP ROUTE
 app.post("/api/signup", async (req, res) => {
   try {
-    const { name, email, password, location, coordinates, role: bodyRole } = req.body;
+    const { name, email: rawEmail, password, location, coordinates, role: bodyRole, otp: rawOtp } = req.body;
+    const email = rawEmail.trim().toLowerCase();
+    const otp = rawOtp.trim();
 
-    // Check if email already exists
-    const existingUser = await User.findOne({ email });
+    console.log(`Verifying signup for: ${email} with OTP: ${otp}`);
+
+    // 1. Enforce Gmail
+    if (!email.endsWith("@gmail.com")) {
+      return res.status(400).json({ error: "Only @gmail.com emails are allowed" });
+    }
+
+    // 2. Validate Password
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        error: "Password must be at least 8 characters long and contain letters, numbers, and special characters."
+      });
+    }
+
+    // 3. Verify OTP
+    const otpRecord = await OTP.findOne({ email, otp });
+
+    if (!otpRecord) {
+      console.log(`OTP check failed for ${email}. Record found?`, !!(await OTP.findOne({ email })));
+      return res.status(400).json({ error: "Invalid or expired OTP" });
+    }
+
+    // Get role (prioritize bodyRole from the selector)
+    const role = bodyRole || "customer";
+
+    // 3. Check if email + role already exists
+    const existingUser = await User.findOne({ email, role });
     if (existingUser) {
-      return res.status(400).json({ error: "Email already exists" });
+      return res.status(400).json({ error: `Account already exists for this email as a ${role}` });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Get role
-    const role = bodyRole || getRole(email);
+    console.log(`Assigning role: ${role} to user: ${email}`);
 
     // Create user
     const user = new User({
@@ -82,6 +181,9 @@ app.post("/api/signup", async (req, res) => {
     });
 
     await user.save();
+
+    // Delete OTP after successful signup
+    await OTP.deleteOne({ email });
 
     // 🔥 CREATE TOKEN (same as login)
     const token = jwt.sign(
@@ -105,9 +207,17 @@ app.post("/api/signup", async (req, res) => {
 // 🔹 LOGIN ROUTE
 app.post("/api/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email: rawEmail, password, role: bodyRole } = req.body;
+    const email = rawEmail.trim().toLowerCase();
 
-    const user = await User.findOne({ email });
+    // If role is provided, find that specific account, otherwise find any
+    let user;
+    if (bodyRole) {
+      user = await User.findOne({ email, role: bodyRole });
+    } else {
+      user = await User.findOne({ email });
+    }
+
     if (!user) {
       return res.status(400).json({ msg: "User not found" });
     }
@@ -386,7 +496,7 @@ app.post("/api/place-order/:type", verifyToken, async (req, res) => {
       for (const cId in itemsByChef) {
         const chefItems = itemsByChef[cId];
         const chefTotal = chefItems.reduce((s, i) => s + i.price * i.quantity, 0);
-        
+
         let chefName = "HomeChef Kitchen";
         if (cId !== "unknown" && mongoose.Types.ObjectId.isValid(cId)) {
           const chefUser = await User.findById(cId);
@@ -484,10 +594,10 @@ app.get("/api/order/:id", verifyToken, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ msg: "Not found" });
-    
+
     // fetch chef to get coordinates
     const chef = await User.findById(order.chefId);
-    
+
     res.json({
       order,
       chefLocation: chef ? chef.coordinates : null
@@ -677,7 +787,7 @@ app.post("/api/cook-guide", verifyToken, async (req, res) => {
     });
 
     const data = await response.json();
-    
+
     try {
       const rawText = data.response.trim();
       let cleaned = rawText;
@@ -685,24 +795,24 @@ app.post("/api/cook-guide", verifyToken, async (req, res) => {
       // Extract JSON part - look for the first '{' and the last '}'
       const startIdx = rawText.indexOf('{');
       const endIdx = rawText.lastIndexOf('}');
-      
+
       if (startIdx !== -1 && endIdx !== -1) {
         cleaned = rawText.substring(startIdx, endIdx + 1);
-        
+
         // Remove any double backticks that might have been caught inside
         // (sometimes models do ``` { ... } ```)
         cleaned = cleaned.replace(/```/g, "").trim();
-        
+
         const jsonResponse = JSON.parse(cleaned);
         return res.json(jsonResponse);
       }
-      
+
       // If no braces found, it's just plain text
       res.json({ response: rawText });
 
     } catch (e) {
       console.error("JSON Parse Error:", e);
-      
+
       // Fallback: try to at least send the text between braces if they exist
       let fallbackText = data.response;
       const s = fallbackText.indexOf('{');
@@ -710,7 +820,7 @@ app.post("/api/cook-guide", verifyToken, async (req, res) => {
       if (s !== -1 && e_idx !== -1) {
         fallbackText = fallbackText.substring(s, e_idx + 1);
       }
-      
+
       res.json({ response: fallbackText });
     }
 
@@ -730,7 +840,7 @@ app.post("/api/subscriptions/subscribe", verifyToken, async (req, res) => {
     if (user.walletBalance < item.price) {
       return res.status(400).json({ msg: "Insufficient wallet balance for subscription." });
     }
-    
+
     const days = parseInt(item.duration) || 30;
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + days);
@@ -789,15 +899,15 @@ app.put("/api/subscriptions/update-status", verifyToken, async (req, res) => {
   try {
     const { subscriptionId, scheduleId, status } = req.body;
     const sub = await Subscription.findById(subscriptionId);
-    
+
     if (!sub) return res.status(404).json({ msg: "Subscription not found" });
-    
+
     const scheduleItem = sub.deliverySchedule.id(scheduleId);
     if (scheduleItem) {
       scheduleItem.status = status;
       await sub.save();
     }
-    
+
     res.json({ msg: "Status updated", sub });
   } catch (err) {
     res.status(500).json({ msg: "Error updating status" });
@@ -808,7 +918,7 @@ app.delete("/api/subscriptions/:id", verifyToken, async (req, res) => {
   try {
     const sub = await Subscription.findById(req.params.id);
     if (!sub) return res.status(404).json({ msg: "Subscription not found" });
-    
+
     if (sub.userId !== req.user.id) {
       return res.status(403).json({ msg: "Not authorized" });
     }
@@ -849,7 +959,7 @@ app.get("/api/delivery/subscriptions/today", verifyToken, async (req, res) => {
 
     // Extract only today's schedule item for each sub
     const result = subs.map(sub => {
-      const todayItem = sub.deliverySchedule.find(d => 
+      const todayItem = sub.deliverySchedule.find(d =>
         new Date(d.date) >= today && new Date(d.date) < tomorrow
       );
       return {
@@ -870,7 +980,7 @@ app.post("/api/wallet/add-money", verifyToken, async (req, res) => {
   try {
     const { amount } = req.body;
     const user = await User.findById(req.user.id);
-    
+
     user.walletBalance += Number(amount);
     await user.save();
 
