@@ -68,8 +68,8 @@ const getRole = (email) => {
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "bhavikarisetty@gmail.com", // Replace with your gmail
-    pass: "vwbl rgjb hpvi egtc"    // Replace with your app password
+    user: "bhavikarisetty@gmail.com",
+    pass: "vwbl rgjb hpvi egtc" 
   }
 });
 
@@ -122,6 +122,87 @@ app.post("/api/send-otp", async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: "Error sending OTP" });
+  }
+});
+
+// 🔹 FORGOT PASSWORD OTP ROUTE
+app.post("/api/forgot-password-otp", async (req, res) => {
+  try {
+    const { email: rawEmail } = req.body;
+    const email = rawEmail.trim().toLowerCase();
+
+    // 1. Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "No account found with this email" });
+    }
+
+    // 2. Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 3. Save to DB
+    await OTP.findOneAndUpdate(
+      { email },
+      { otp, createdAt: new Date() },
+      { upsert: true, returnDocument: 'after' }
+    );
+
+    // 4. Send Email
+    const mailOptions = {
+      from: "HomeChef Support <your-email@gmail.com>",
+      to: email,
+      subject: "Password Reset Code - HomeChef",
+      text: `Your password reset code is: ${otp}. If you didn't request this, please ignore this email.`
+    };
+
+    console.log(`Reset OTP for ${email}: ${otp}`);
+
+    try {
+      await transporter.sendMail(mailOptions);
+      res.json({ message: "Reset code sent to your email" });
+    } catch (mailErr) {
+      res.json({ message: "Code generated (Check console for dev)", devOtp: otp });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Error sending reset code" });
+  }
+});
+
+// 🔹 RESET PASSWORD FINAL ROUTE
+app.post("/api/reset-password", async (req, res) => {
+  try {
+    const { email: rawEmail, otp: rawOtp, newPassword } = req.body;
+    const email = rawEmail.trim().toLowerCase();
+    const otp = rawOtp.trim();
+
+    // 1. Verify OTP
+    const otpRecord = await OTP.findOne({ email, otp });
+    if (!otpRecord) {
+      return res.status(400).json({ error: "Invalid or expired reset code" });
+    }
+
+    // 2. Validate Password
+    if (!validatePassword(newPassword)) {
+      return res.status(400).json({
+        error: "Password must be at least 8 characters long and contain letters, numbers, and special characters."
+      });
+    }
+
+    // 3. Update all accounts with this email (if multi-role support is enabled)
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const result = await User.updateMany({ email }, { password: hashedPassword });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // 4. Cleanup
+    await OTP.deleteOne({ email });
+
+    res.json({ message: "Password updated successfully! You can now login." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error resetting password" });
   }
 });
 

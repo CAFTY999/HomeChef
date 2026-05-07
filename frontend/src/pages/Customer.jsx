@@ -73,7 +73,7 @@ export default function Customer() {
 
   return (
     <div className="min-h-screen bg-[#fffcfb] pb-20 selection:bg-primary/20 overflow-x-hidden">
-      <Navbar search={search} setSearch={setSearch} />
+      <Navbar />
 
       {/* Hero Section - Immersive Design */}
       <section className="relative min-h-[85vh] flex items-center pt-20">

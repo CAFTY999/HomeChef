@@ -16,6 +16,11 @@ export default function LoginPopup({ setShowLogin, openSignup }) {
     password: "",
     role: "customer"
   });
+
+  const [isForgot, setIsForgot] = useState(false);
+  const [resetStep, setResetStep] = useState(1); // 1: Email, 2: OTP + New Pass
+  const [resetData, setResetData] = useState({ email: "", otp: "", newPassword: "" });
+  const [resetLoading, setResetLoading] = useState(false);
  
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -32,6 +37,37 @@ export default function LoginPopup({ setShowLogin, openSignup }) {
       alert(err.response?.data?.msg || "Login failed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendResetOTP = async (e) => {
+    e.preventDefault();
+    if (!resetData.email) return;
+    setResetLoading(true);
+    try {
+      const res = await axios.post("http://localhost:3000/api/forgot-password-otp", { email: resetData.email });
+      alert(res.data.message);
+      if (res.data.devOtp) console.log("Reset OTP:", res.data.devOtp);
+      setResetStep(2);
+    } catch (err) {
+      alert(err.response?.data?.error || "Error sending reset code");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleFinalReset = async (e) => {
+    e.preventDefault();
+    setResetLoading(true);
+    try {
+      const res = await axios.post("http://localhost:3000/api/reset-password", resetData);
+      alert(res.data.message);
+      setIsForgot(false);
+      setResetStep(1);
+    } catch (err) {
+      alert(err.response?.data?.error || "Error resetting password");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -78,64 +114,147 @@ export default function LoginPopup({ setShowLogin, openSignup }) {
 
         {/* Right Side: Form */}
         <div className="flex-1 p-6 sm:p-10 lg:p-20 flex flex-col justify-center bg-white">
-          <div className="mb-8 sm:mb-12">
-             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter mb-2">Login</h2>
-             <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Sign in to your HomeChef account</p>
-          </div>
+          <AnimatePresence mode="wait">
+            {!isForgot ? (
+              <motion.div 
+                key="login"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <div className="mb-8 sm:mb-12">
+                   <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter mb-2">Login</h2>
+                   <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Sign in to your HomeChef account</p>
+                </div>
 
-          <form onSubmit={handleLogin} className="space-y-6 sm:space-y-8">
-            {/* Role Toggle for Login */}
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Login as</label>
-              <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                {[
-                  { id: "customer", label: "Customer" },
-                  { id: "chef", label: "Chef" },
-                  { id: "delivery_partner", label: "Delivery" }
-                ].map(r => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setForm({...form, role: r.id})}
-                    className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${form.role === r.id ? 'bg-white text-primary shadow-sm' : 'text-slate-400'}`}
-                  >
-                    {r.label}
+                <form onSubmit={handleLogin} className="space-y-6 sm:space-y-8">
+                  {/* Role Toggle for Login */}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Login as</label>
+                    <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                      {[
+                        { id: "customer", label: "Customer" },
+                        { id: "chef", label: "Chef" },
+                        { id: "delivery_partner", label: "Delivery" }
+                      ].map(r => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setForm({...form, role: r.id})}
+                          className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${form.role === r.id ? 'bg-white text-primary shadow-sm' : 'text-slate-400'}`}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Account Email</label>
+                    <div className="relative group">
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+                      <input name="email" type="email" required placeholder="your@email.com" onChange={handleChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center px-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Security Key</label>
+                      <button type="button" onClick={() => setIsForgot(true)} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Forgot?</button>
+                    </div>
+                    <div className="relative group">
+                      <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+                      <input name="password" type="password" required placeholder="••••••••" onChange={handleChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-6 rounded-2xl shadow-2xl shadow-slate-900/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] group mt-4">
+                    {loading ? "Verifying..." : "Sign into Account"}
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Account Email</label>
-              <div className="relative group">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
-                <input name="email" type="email" required placeholder="your@email.com" onChange={handleChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" />
-              </div>
-            </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Security Key</label>
-                <button type="button" className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Forgot?</button>
-              </div>
-              <div className="relative group">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
-                <input name="password" type="password" required placeholder="••••••••" onChange={handleChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" />
-              </div>
-            </div>
+                  <div className="pt-10 text-center border-t border-slate-50">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                      New to HomeChef?{" "}
+                      <button type="button" onClick={openSignup} className="text-primary font-black hover:underline underline-offset-4 ml-2">Create Account</button>
+                    </p>
+                  </div>
+                </form>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="forgot"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <div className="mb-8 sm:mb-12">
+                   <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter mb-2">Reset Password</h2>
+                   <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Verify your email to continue</p>
+                </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-6 rounded-2xl shadow-2xl shadow-slate-900/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] group mt-4">
-              {loading ? "Verifying..." : "Sign into Account"}
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+                <form onSubmit={resetStep === 1 ? handleSendResetOTP : handleFinalReset} className="space-y-6 sm:space-y-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Registered Email</label>
+                    <div className="relative group">
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+                      <input 
+                        disabled={resetStep === 2}
+                        type="email" 
+                        required 
+                        placeholder="your@email.com" 
+                        value={resetData.email}
+                        onChange={(e) => setResetData({...resetData, email: e.target.value})} 
+                        className={`w-full pl-14 pr-6 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner ${resetStep === 2 ? 'opacity-50' : ''}`} 
+                      />
+                    </div>
+                  </div>
 
-            <div className="pt-10 text-center border-t border-slate-50">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                New to HomeChef?{" "}
-                <button type="button" onClick={openSignup} className="text-primary font-black hover:underline underline-offset-4 ml-2">Create Account</button>
-              </p>
-            </div>
-          </form>
+                  {resetStep === 2 && (
+                    <>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Enter Reset Code (OTP)</label>
+                        <div className="relative group">
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+                          <input 
+                            name="otp" 
+                            required 
+                            placeholder="6-digit code" 
+                            onChange={(e) => setResetData({...resetData, otp: e.target.value})} 
+                            className="w-full pl-14 pr-6 py-5 bg-primary/5 border-2 border-primary/20 rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 transition-all" 
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">New Secure Password</label>
+                        <div className="relative group">
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+                          <input 
+                            type="password" 
+                            required 
+                            placeholder="Min 8 chars, 1 letter, 1 special char" 
+                            onChange={(e) => setResetData({...resetData, newPassword: e.target.value})} 
+                            className="w-full pl-14 pr-6 py-5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-inner" 
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <button type="submit" disabled={resetLoading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-6 rounded-2xl shadow-2xl shadow-slate-900/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] group mt-4">
+                    {resetLoading ? "Processing..." : resetStep === 1 ? "Send Reset Code" : "Update Password"}
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </button>
+
+                  <div className="pt-10 text-center border-t border-slate-50">
+                    <button type="button" onClick={() => {setIsForgot(false); setResetStep(1);}} className="text-xs font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">
+                      Back to Login
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </div>
